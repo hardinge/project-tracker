@@ -1,0 +1,612 @@
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import {
+  COL_DEFS, COL_WIDTHS, INDENT_PX, NUM_COLS, TYPE_BADGE_COLOR,
+  getType, makeRow, recomputeStructure, subtreeRange,
+  computeAvailability, computeVisible, loadRows, saveRows, SEED_ROWS,
+  logout,
+} from './storage.js';
+import FilterBar from './FilterBar.jsx';
+
+// ─── Cell display renderer ────────────────────────────────────────────────────
+
+const REQ_COLOR = { Must: '#ef4444', Need: '#f59e0b', Want: '#3b82f6' };
+const IU_SET    = new Set(['HH','HM','MH','HL','MM','LH','ML','LM','LL']);
+
+const STATUS_STYLE = {
+  Potential: { background: '#1e293b', color: '#94a3b8' },
+  Active:    { background: '#052e16', color: '#4ade80' },
+  Deferred:  { background: '#431407', color: '#fb923c' },
+  Done:      { background: '#0c1a3a', color: '#60a5fa' },
+  Cancelled: { background: '#1c0a0a', color: '#f87171' },
+};
+
+function CellDisplay({ val, def }) {
+  if (val === '' || val == null) return <span style={{ color: '#3a4060' }}>—</span>;
+
+  if (def.type === 'currency_sum') {
+    const n = typeof val === 'number' ? val : parseFloat(val);
+    if (isNaN(n) || n === 0) return <span style={{ color: '#3a4060' }}>—</span>;
+    return (
+      <span style={{
+        color: n > 0 ? '#10b981' : '#ef4444',
+        fontVariantNumeric: 'tabular-nums', fontFamily: 'monospace',
+      }}>
+        {n > 0 ? '+' : '−'}${Math.abs(n).toLocaleString()}
+      </span>
+    );
+  }
+
+  if (def.type === 'time') {
+    return <span style={{ fontFamily: 'monospace' }}>{val}</span>;
+  }
+
+  if (def.type === 'id') {
+    return <span style={{ fontFamily: 'monospace', letterSpacing: '0.5px' }}>{val}</span>;
+  }
+
+  if (def.type === 'status') {
+    const s = STATUS_STYLE[val];
+    if (!s) return <span>{val}</span>;
+    return (
+      <span style={{ ...s, borderRadius: 3, padding: '1px 7px', fontWeight: 600 }}>
+        {val}
+      </span>
+    );
+  }
+
+  if (def.type === 'available') {
+    if (val === 'Yes') return <span style={{ color: '#4ade80', fontWeight: 700 }}>Available</span>;
+    if (val === 'No')  return <span style={{ color: '#3a4060' }}>not a</span>;
+    return <span style={{ color: '#3a4060' }}>—</span>;
+  }
+
+  if (def.type === 'dropdown') {
+    if (REQ_COLOR[val]) {
+      return (
+        <span style={{
+          background: REQ_COLOR[val], color: '#fff',
+          borderRadius: 3, padding: '1px 7px', fontWeight: 700,
+        }}>{val}</span>
+      );
+    }
+    if (IU_SET.has(val)) {
+      return (
+        <span style={{
+          background: '#1e2d45', color: '#7dd3fc',
+          borderRadius: 3, padding: '1px 6px',
+          fontFamily: 'monospace', fontWeight: 700,
+        }}>{val}</span>
+      );
+    }
+    if (val === 'routine')    return <span style={{ background: '#312e81', color: '#a5b4fc', borderRadius: 3, padding: '1px 7px' }}>routine</span>;
+    if (val === 'not r')      return <span>{val}</span>;
+    if (val === 'event')      return <span style={{ background: '#164e63', color: '#67e8f9', borderRadius: 3, padding: '1px 7px' }}>event</span>;
+    if (val === 'not e')      return <span>{val}</span>;
+    if (val === 'parallel')   return <span style={{ background: '#1e3a5f', color: '#93c5fd', borderRadius: 3, padding: '1px 7px' }}>parallel</span>;
+    if (val === 'sequential') return <span>{val}</span>;
+    return <span>{val}</span>;
+  }
+
+  if (def.type === 'currency') {
+    const n = parseFloat(val);
+    if (isNaN(n)) return <span>{val}</span>;
+    return (
+      <span style={{
+        color: n >= 0 ? '#10b981' : '#ef4444',
+        fontVariantNumeric: 'tabular-nums', fontFamily: 'monospace',
+      }}>
+        {n >= 0 ? '+' : '−'}${Math.abs(n).toLocaleString()}
+      </span>
+    );
+  }
+
+  if (def.type === 'url') {
+    return (
+      <a
+        href={val} target="_blank" rel="noopener noreferrer"
+        style={{ color: '#3b82f6', textDecoration: 'none' }}
+        onClick={e => e.stopPropagation()}
+      >
+        🔗 link
+      </a>
+    );
+  }
+
+  return <span>{val}</span>;
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export default function ProjectTracker({ onLogout }) {
+  const [rows, setRows]       = useState(null);
+  const [dataReady, setDataReady] = useState(false);
+  const [sel, setSel]         = useState({ r: 0, c: 0 });
+  const [editing, setEditing] = useState(false);
+  const [filters, setFilters] = useState(() => ({
+    area:       '',
+    types:      new Set(['Goal','Project','Step','Action']),
+    nextAction: 'all',
+    req:        new Set(['Must','Need','Want']),
+    iu:         '',
+    date:       '',
+    search:     '',
+  }));
+
+  const inputRef     = useRef(null);
+  const containerRef = useRef(null);
+
+  // Load rows from server on mount
+  useEffect(() => {
+    loadRows().then(data => {
+      setRows(data ?? SEED_ROWS);
+      setDataReady(true);
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist on every rows change (debounced 800ms, skips initial load)
+  useEffect(() => {
+    if (!dataReady || rows === null) return;
+    const t = setTimeout(() => saveRows(rows), 800);
+    return () => clearTimeout(t);
+  }, [rows, dataReady]);
+
+  // ── Computed Available ────────────────────────────────────────────────────
+  const computedAvailable = useMemo(() => computeAvailability(rows), [rows]);
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+      if (inputRef.current.select) inputRef.current.select();
+    }
+  }, [editing, sel]);
+
+  // ── Visible rows (filtered) ──────────────────────────────────────────────
+  const visible = useMemo(
+    () => computeVisible(rows, computedAvailable, filters),
+    [rows, computedAvailable, filters],
+  );
+
+  // ── Visible index set (for $ sum) ─────────────────────────────────────────
+  const visibleSet = useMemo(
+    () => new Set(visible.map(v => v.globalIdx)),
+    [visible],
+  );
+
+  // ── Computed $ sums — only count visible Action descendants ───────────────
+  const computedSums = useMemo(() => {
+    const sums = {};
+    rows.forEach((row, i) => {
+      const type = getType(row.depth);
+      if (type === 'Goal' || type === 'Project' || type === 'Step') {
+        const [start, end] = subtreeRange(rows, i);
+        let total = 0;
+        for (let j = start + 1; j < end; j++) {
+          if (getType(rows[j].depth) === 'Action' && visibleSet.has(j)) {
+            const n = parseFloat(rows[j].values[3]);
+            if (!isNaN(n)) total += n;
+          }
+        }
+        sums[row.id] = total;
+      }
+    });
+    return sums;
+  }, [rows, visibleSet]);
+
+  // Clamp sel.r when visible shrinks
+  useEffect(() => {
+    if (visible.length > 0 && sel.r >= visible.length) {
+      setSel(s => ({ ...s, r: visible.length - 1 }));
+    }
+  }, [visible.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Scroll selected row into view
+  useEffect(() => {
+    document.getElementById(`row-${sel.r}`)?.scrollIntoView({ block: 'nearest' });
+  }, [sel.r]);
+
+  // ── Cell update ──────────────────────────────────────────────────────────
+  const updateCell = useCallback((id, col, val) => {
+    setRows(prev =>
+      prev.map(r => r.id === id
+        ? { ...r, values: r.values.map((v, i) => i === col ? val : v) }
+        : r
+      )
+    );
+  }, []);
+
+  // ── Keyboard ─────────────────────────────────────────────────────────────
+  const handleKeyDown = useCallback((e) => {
+    const numRows = visible.length;
+    if (numRows === 0) return;
+
+    if (editing) {
+      // Only plain Enter exits edit mode; everything else (incl. Shift+Arrow) is left
+      // to the browser so text selection works normally.
+      if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setEditing(false);
+        containerRef.current?.focus();
+      }
+      return;
+    }
+
+    const { r, c } = sel;
+    const isCtrl  = e.ctrlKey || e.metaKey;
+    const isShift = e.shiftKey;
+
+    // ── Plain arrow navigation (no modifier) ────────────────────────────────
+    if (!isCtrl && !isShift) {
+      if      (e.key === 'ArrowDown')  { e.preventDefault(); setSel({ r: Math.min(r + 1, numRows - 1), c }); }
+      else if (e.key === 'ArrowUp')    { e.preventDefault(); setSel({ r: Math.max(r - 1, 0), c }); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); setSel({ r, c: Math.min(c + 1, NUM_COLS - 1) }); }
+      else if (e.key === 'ArrowLeft')  { e.preventDefault(); setSel({ r, c: Math.max(c - 1, 0) }); }
+      else if (e.key === 'Enter')      { e.preventDefault(); setEditing(true); }
+      return;
+    }
+
+    // ── Shift+Arrow — move rows ──────────────────────────────────────────────
+    if (isShift && !isCtrl && e.key.startsWith('Arrow')) {
+      e.preventDefault();
+      const { globalIdx, row } = visible[r];
+
+      if (e.key === 'ArrowUp') {
+        // Move subtree above sibling immediately above
+        let sibIdx = -1;
+        for (let i = globalIdx - 1; i >= 0; i--) {
+          if (rows[i].depth === row.depth) { sibIdx = i; break; }
+          if (rows[i].depth < row.depth) break;
+        }
+        if (sibIdx === -1) return;
+        const [ourStart, ourEnd] = subtreeRange(rows, globalIdx);
+        const [sibStart, sibEnd] = subtreeRange(rows, sibIdx);
+        setRows(prev => recomputeStructure([
+          ...prev.slice(0, sibStart),
+          ...prev.slice(ourStart, ourEnd),
+          ...prev.slice(sibStart, sibEnd),
+          ...prev.slice(ourEnd),
+        ]));
+        const sibVisCount = visible.filter(v => v.globalIdx >= sibStart && v.globalIdx < sibEnd).length;
+        setSel(s => ({ ...s, r: s.r - sibVisCount }));
+
+      } else if (e.key === 'ArrowDown') {
+        // Move subtree below sibling immediately below
+        const [ourStart, ourEnd] = subtreeRange(rows, globalIdx);
+        if (ourEnd >= rows.length || rows[ourEnd].depth !== row.depth) return;
+        const [sibStart, sibEnd] = subtreeRange(rows, ourEnd);
+        setRows(prev => recomputeStructure([
+          ...prev.slice(0, ourStart),
+          ...prev.slice(sibStart, sibEnd),
+          ...prev.slice(ourStart, ourEnd),
+          ...prev.slice(sibEnd),
+        ]));
+        const sibVisCount = visible.filter(v => v.globalIdx >= sibStart && v.globalIdx < sibEnd).length;
+        setSel(s => ({ ...s, r: s.r + sibVisCount }));
+
+      } else if (e.key === 'ArrowRight') {
+        // Indent: subtree becomes children of sibling immediately above
+        if (row.depth >= 4) return;
+        let sibIdx = -1;
+        for (let i = globalIdx - 1; i >= 0; i--) {
+          if (rows[i].depth === row.depth) { sibIdx = i; break; }
+          if (rows[i].depth < row.depth) break;
+        }
+        if (sibIdx === -1) return;
+        const [start, end] = subtreeRange(rows, globalIdx);
+        setRows(prev => recomputeStructure(
+          prev.map((rr, i) => i >= start && i < end ? { ...rr, depth: rr.depth + 1 } : rr)
+        ));
+
+      } else if (e.key === 'ArrowLeft') {
+        // Outdent: subtree becomes siblings of current parent
+        if (row.depth === 0) return;
+        const [start, end] = subtreeRange(rows, globalIdx);
+        setRows(prev => recomputeStructure(
+          prev.map((rr, i) => i >= start && i < end ? { ...rr, depth: rr.depth - 1 } : rr)
+        ));
+      }
+      return;
+    }
+
+    // ── Ctrl+Arrow — insert new rows ─────────────────────────────────────────
+    if (isCtrl && !isShift && e.key.startsWith('Arrow')) {
+      e.preventDefault();
+      const { row, globalIdx } = visible[r];
+      const [, ourEnd] = subtreeRange(rows, globalIdx);
+      const visInSubtree = visible.filter(v => v.globalIdx >= globalIdx && v.globalIdx < ourEnd).length;
+
+      if (e.key === 'ArrowRight') {
+        // New child as last child (depth+1)
+        if (row.depth >= 4) return;
+        const newRow = makeRow(row.depth + 1, row.id, 0);
+        setRows(prev => { const next = [...prev]; next.splice(ourEnd, 0, newRow); return recomputeStructure(next); });
+        setTimeout(() => { setSel({ r: r + visInSubtree, c: 0 }); setEditing(true); }, 0);
+
+      } else if (e.key === 'ArrowDown') {
+        // New sibling below entire subtree (same depth)
+        const newRow = makeRow(row.depth, row.parent_id, row.position + 1);
+        setRows(prev => { const next = [...prev]; next.splice(ourEnd, 0, newRow); return recomputeStructure(next); });
+        setTimeout(() => { setSel({ r: r + visInSubtree, c: 0 }); setEditing(true); }, 0);
+
+      } else if (e.key === 'ArrowUp') {
+        // New sibling immediately above (same depth)
+        const newRow = makeRow(row.depth, row.parent_id, row.position);
+        setRows(prev => { const next = [...prev]; next.splice(globalIdx, 0, newRow); return recomputeStructure(next); });
+        setTimeout(() => { setSel({ r, c: 0 }); setEditing(true); }, 0);
+
+      } else if (e.key === 'ArrowLeft') {
+        // New row after subtree, outdented one level (depth-1)
+        if (row.depth === 0) return;
+        const newRow = makeRow(row.depth - 1, row.parent_id, 0);
+        setRows(prev => { const next = [...prev]; next.splice(ourEnd, 0, newRow); return recomputeStructure(next); });
+        setTimeout(() => { setSel({ r: r + visInSubtree, c: 0 }); setEditing(true); }, 0);
+      }
+      return;
+    }
+
+    // ── Ctrl+Delete — delete row and subtree ─────────────────────────────────
+    if (isCtrl && e.key === 'Delete') {
+      e.preventDefault();
+      const { globalIdx } = visible[r];
+      const [delStart, delEnd] = subtreeRange(rows, globalIdx);
+      const confirmed = window.confirm('Delete this row and all its children? This cannot be undone.');
+      if (!confirmed) return;
+      setRows(prev => recomputeStructure([...prev.slice(0, delStart), ...prev.slice(delEnd)]));
+      setSel(s => ({ ...s, r: Math.max(0, s.r - 1) }));
+      return;
+    }
+  }, [editing, sel, visible, rows]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener('keydown', handleKeyDown);
+    return () => el.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  // ── Derived header (based on selected row type) ──────────────────────────
+  const selRow     = visible[sel.r];
+  const selType    = selRow ? getType(selRow.row.depth) : 'Area';
+  const headerDefs = COL_DEFS[selType];
+
+  if (!dataReady) {
+    return (
+      <div style={{
+        height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: '#0f1117', fontFamily: "'DM Mono','Fira Code',monospace",
+        color: '#475569', fontSize: 15,
+      }}>
+        Loading…
+      </div>
+    );
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────
+  return (
+    <div
+      ref={containerRef}
+      tabIndex={0}
+      style={{
+        fontFamily: "'DM Mono','Fira Code',monospace",
+        height: '100vh', display: 'flex', flexDirection: 'column',
+        background: '#0f1117', outline: 'none', userSelect: 'none',
+      }}
+    >
+      {/* ── Top bar ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 16,
+        padding: '10px 20px', background: '#1a1d2e',
+        borderBottom: '1px solid #2d3149', flexShrink: 0,
+      }}>
+        <span style={{ fontSize: 17, fontWeight: 700, color: '#e2e8f0', letterSpacing: 1 }}>
+          ◈ PROJECT TRACKER
+        </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 20, fontSize: 13, color: '#475569' }}>
+          {[
+            ['↑↓←→',       'navigate'],
+            ['Enter',       'edit'],
+            ['Shift+↑↓←→', 'move/indent'],
+            ['Ctrl+↑↓←→',  'insert'],
+            ['Ctrl+Del',    'delete'],
+          ].map(([key, label]) => (
+            <span key={key}>
+              <kbd style={{ background: '#1e2235', padding: '2px 5px', borderRadius: 3, color: '#94a3b8' }}>
+                {key}
+              </kbd>{' '}{label}
+            </span>
+          ))}
+        </div>
+        <button
+          onMouseDown={e => e.stopPropagation()}
+          onClick={() => { logout().then(onLogout); }}
+          style={{
+            background: 'none', border: '1px solid #2d3149', borderRadius: 4,
+            color: '#475569', padding: '3px 10px', fontSize: 13,
+            fontFamily: 'inherit', cursor: 'pointer', marginLeft: 8,
+          }}
+        >
+          sign out
+        </button>
+      </div>
+
+      {/* ── Filter bar ── */}
+      <FilterBar filters={filters} onChange={setFilters} rows={rows} />
+
+      {/* ── Column headers — dynamic per selected type ── */}
+      <div style={{ display: 'flex', background: '#1a1d2e', borderBottom: '2px solid #2d3149', flexShrink: 0 }}>
+        {COL_WIDTHS.map((w, i) => (
+          <div key={i} style={{
+            width: w, minWidth: w, padding: '6px 10px',
+            fontSize: 12, fontWeight: 700, color: '#64748b',
+            textTransform: 'uppercase', letterSpacing: '0.8px',
+            borderRight: '1px solid #2d3149', boxSizing: 'border-box', overflow: 'hidden',
+          }}>
+            {headerDefs[i]?.label || ''}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Rows ── */}
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
+        <div style={{ minWidth: COL_WIDTHS.reduce((a, b) => a + b, 0) }}>
+          {visible.map(({ row, globalIdx }, rowIdx) => {
+            const type     = getType(row.depth);
+            const defs     = COL_DEFS[type];
+            const isSelRow = sel.r === rowIdx;
+
+            const rowBg = isSelRow ? '#1e3a5f'
+              : type === 'Area'    ? '#12151f'
+              : type === 'Goal'    ? '#161b2e'
+              : type === 'Project' ? '#1a2035'
+              : type === 'Step'    ? '#1d2133'
+              :                      '#1e2238';
+
+            return (
+              <div
+                id={`row-${rowIdx}`}
+                key={row.id}
+                style={{
+                  display: 'flex',
+                  borderBottom: `1px solid ${isSelRow ? '#2d4a6e' : '#1e2235'}`,
+                  background: rowBg, transition: 'background 0.1s',
+                }}
+                onMouseDown={() => {
+                  setSel({ r: rowIdx, c: sel.c });
+                  setEditing(false);
+                  containerRef.current?.focus();
+                }}
+              >
+                {COL_WIDTHS.map((w, colIdx) => {
+                  const def = defs[colIdx];
+
+                  // Resolve display value — computed fields override stored
+                  const displayVal =
+                    def.type === 'currency_sum' ? (computedSums[row.id] ?? 0)
+                    : def.type === 'available'  ? (computedAvailable[row.id] ?? '')
+                    : def.type === 'id'         ? row.id
+                    : row.values[colIdx];
+
+                  const isSelCell  = isSelRow && sel.c === colIdx;
+                  const isEditCell = isSelCell && editing && !def.readonly;
+
+                  return (
+                    <div
+                      key={colIdx}
+                      onMouseDown={e => {
+                        e.stopPropagation();
+                        setSel({ r: rowIdx, c: colIdx });
+                        setEditing(false);
+                        containerRef.current?.focus();
+                      }}
+                      onDoubleClick={e => {
+                        e.stopPropagation();
+                        if (!def.readonly) { setSel({ r: rowIdx, c: colIdx }); setEditing(true); }
+                      }}
+                      style={{
+                        width: w, minWidth: w, boxSizing: 'border-box',
+                        padding: colIdx === 0
+                          ? `5px 8px 5px ${8 + row.depth * INDENT_PX}px`
+                          : '5px 10px',
+                        borderRight: '1px solid #1e2235',
+                        fontSize: 15, color: '#cbd5e1',
+                        outline: isSelCell
+                          ? `2px solid ${isEditCell ? '#60a5fa' : '#3b82f6'}`
+                          : 'none',
+                        outlineOffset: -2,
+                        background: isEditCell ? '#0d1117' : 'transparent',
+                        overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+                        display: 'flex', alignItems: 'center', gap: 6, cursor: 'default',
+                      }}
+                    >
+                      {/* Type badge — col1 only */}
+                      {colIdx === 0 && (
+                        <span style={{
+                          flexShrink: 0, fontSize: 10, fontWeight: 800, letterSpacing: 0.5,
+                          background: TYPE_BADGE_COLOR[type], color: '#fff',
+                          borderRadius: 2, padding: '2px 5px', textTransform: 'uppercase',
+                        }}>
+                          {type[0]}
+                        </span>
+                      )}
+
+                      {/* Edit mode */}
+                      {isEditCell ? (
+                        def.type === 'dropdown' || def.type === 'status' ? (
+                          <select
+                            ref={inputRef}
+                            value={row.values[colIdx]}
+                            onChange={e => updateCell(row.id, colIdx, e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') { e.preventDefault(); setEditing(false); containerRef.current?.focus(); }
+                              e.stopPropagation();
+                            }}
+                            style={{
+                              flex: 1, background: '#0d1117', border: 'none',
+                              outline: 'none', color: '#e2e8f0', fontSize: 15,
+                              fontFamily: 'inherit', cursor: 'pointer',
+                            }}
+                          >
+                            {def.options.map(o => (
+                              <option key={o} value={o}>{o || '(none)'}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            ref={inputRef}
+                            type={def.type === 'date' ? 'date' : 'text'}
+                            placeholder={def.type === 'time' ? 'HH:MM' : undefined}
+                            value={row.values[colIdx]}
+                            onChange={e => updateCell(row.id, colIdx, e.target.value)}
+                            onKeyDown={e => {
+                              e.stopPropagation();
+                              if (e.key === 'Enter') { e.preventDefault(); setEditing(false); containerRef.current?.focus(); }
+                            }}
+                            style={{
+                              flex: 1, background: 'transparent', border: 'none',
+                              outline: 'none', color: '#e2e8f0', fontSize: 15,
+                              fontFamily: 'inherit', minWidth: 0,
+                            }}
+                          />
+                        )
+                      ) : (
+                        /* Display mode */
+                        <span style={{
+                          overflow: 'hidden', textOverflow: 'ellipsis', flex: 1,
+                          fontWeight: colIdx === 0 && (type === 'Area' || type === 'Goal') ? 700 : 400,
+                          color: colIdx === 0 && (type === 'Area' || type === 'Goal') ? '#94a3b8'
+                               : colIdx === 0 ? '#e2e8f0'
+                               : '#94a3b8',
+                        }}>
+                          <CellDisplay val={displayVal} def={def} />
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+          <div style={{ padding: '10px 20px', color: '#2d3149', fontSize: 12 }}>
+            <span style={{ fontSize: 14 }}>Ctrl+↓ new sibling · Ctrl+→ new child</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Status bar ── */}
+      <div style={{
+        display: 'flex', gap: 24, padding: '5px 20px',
+        background: '#12151f', borderTop: '1px solid #1e2235',
+        fontSize: 13, color: '#475569', flexShrink: 0,
+      }}>
+        <span>Row <span style={{ color: '#94a3b8' }}>{sel.r + 1}</span> / {visible.length}</span>
+        <span>Type: <span style={{ color: TYPE_BADGE_COLOR[selType], fontWeight: 700 }}>{selType}</span></span>
+        {visible.length < rows.length && (
+          <span>Filtered: <span style={{ color: '#60a5fa' }}>{visible.length}</span> of {rows.length}</span>
+        )}
+        <span style={{ marginLeft: 'auto', color: editing ? '#60a5fa' : '#475569' }}>
+          {editing ? '✏ EDIT' : '⌨ NAV'}
+        </span>
+      </div>
+    </div>
+  );
+}
