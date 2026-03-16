@@ -150,7 +150,7 @@ export default function ProjectTracker() {
   }, [rows, dataReady]);
 
   // ── Computed Available ────────────────────────────────────────────────────
-  const computedAvailable = useMemo(() => computeAvailability(rows), [rows]);
+  const computedAvailable = useMemo(() => computeAvailability(rows ?? []), [rows]);
 
   // Focus input when editing starts
   useEffect(() => {
@@ -162,7 +162,7 @@ export default function ProjectTracker() {
 
   // ── Visible rows (filtered) ──────────────────────────────────────────────
   const visible = useMemo(
-    () => computeVisible(rows, computedAvailable, filters),
+    () => computeVisible(rows ?? [], computedAvailable, filters),
     [rows, computedAvailable, filters],
   );
 
@@ -175,7 +175,7 @@ export default function ProjectTracker() {
   // ── Computed $ sums — only count visible Action descendants ───────────────
   const computedSums = useMemo(() => {
     const sums = {};
-    rows.forEach((row, i) => {
+    (rows ?? []).forEach((row, i) => {
       const type = getType(row.depth);
       if (type === 'Goal' || type === 'Project' || type === 'Step') {
         const [start, end] = subtreeRange(rows, i);
