@@ -3,7 +3,6 @@ import {
   COL_DEFS, COL_WIDTHS, INDENT_PX, NUM_COLS, TYPE_BADGE_COLOR,
   getType, makeRow, recomputeStructure, subtreeRange,
   computeAvailability, computeVisible, loadRows, saveRows, SEED_ROWS,
-  logout,
 } from './storage.js';
 import FilterBar from './FilterBar.jsx';
 
@@ -117,7 +116,7 @@ function CellDisplay({ val, def }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function ProjectTracker({ onLogout }) {
+export default function ProjectTracker() {
   const [rows, setRows]       = useState(null);
   const [dataReady, setDataReady] = useState(false);
   const [sel, setSel]         = useState({ r: 0, c: 0 });
@@ -416,17 +415,6 @@ export default function ProjectTracker({ onLogout }) {
             </span>
           ))}
         </div>
-        <button
-          onMouseDown={e => e.stopPropagation()}
-          onClick={() => { logout().then(onLogout); }}
-          style={{
-            background: 'none', border: '1px solid #2d3149', borderRadius: 4,
-            color: '#475569', padding: '3px 10px', fontSize: 13,
-            fontFamily: 'inherit', cursor: 'pointer', marginLeft: 8,
-          }}
-        >
-          sign out
-        </button>
       </div>
 
       {/* ── Filter bar ── */}
