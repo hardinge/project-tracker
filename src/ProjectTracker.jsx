@@ -125,7 +125,7 @@ export default function ProjectTracker() {
     area:       '',
     types:      new Set(['Goal','Project','Step','Action']),
     nextAction: 'all',
-    req:        new Set(['Must','Need','Want']),
+    req:        new Set(['Must','Need','Want','']),
     iu:         '',
     date:       '',
     search:     '',
