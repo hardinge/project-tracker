@@ -3,7 +3,7 @@
 export const TYPES = ['Area', 'Goal', 'Project', 'Step', 'Action'];
 
 const REQ_OPTS     = ['', 'Must', 'Need', 'Want'];
-const IU_OPTS      = ['', 'HH', 'HM', 'MH', 'HL', 'MM', 'LH', 'ML', 'LM', 'LL'];
+const IU_OPTS      = ['', '1', '2', '3', '4', '5'];
 const CTX_OPTS     = [
   '', 'phone', 'comp & call', 'quick comp', 'long comp',
   'work', 'home', 'supermarket', 'storage', 'post office',
@@ -67,7 +67,7 @@ export const COL_DEFS = {
   Project: [
     { label: 'Project',     type: 'text' },
     { label: 'Requirement', type: 'dropdown', options: REQ_OPTS },
-    { label: 'Imp/Urg',     type: 'dropdown', options: IU_OPTS },
+    { label: 'Importance',   type: 'dropdown', options: IU_OPTS },
     { label: '$ total',     type: 'currency_sum', readonly: true },
     { label: 'Week',        type: 'week' },
     { label: 'Date',        type: 'date' },
@@ -83,7 +83,7 @@ export const COL_DEFS = {
   Step: [
     { label: 'Step',        type: 'text' },
     { label: 'Requirement', type: 'dropdown', options: REQ_OPTS },
-    { label: 'Imp/Urg',     type: 'dropdown', options: IU_OPTS },
+    { label: 'Importance',   type: 'dropdown', options: IU_OPTS },
     { label: '$ total',     type: 'currency_sum', readonly: true },
     { label: 'Week',        type: 'week' },
     { label: 'Date',        type: 'date' },
@@ -277,11 +277,8 @@ export function computeAvailability(rows) {
 
 // ─── Imp/Urg scoring ─────────────────────────────────────────────────────────
 
-export const IU_SCORES = {
-  HH: 5.7, HM: 4.8, MH: 4.7, HL: 3.9, MM: 3.8,
-  LH: 3.7, ML: 2.9, LM: 2.8, LL: 1.9,
-};
-export const IU_OPTIONS = ['HH','HM','MH','HL','MM','LH','ML','LM','LL'];
+export const IU_SCORES = { '1': 5, '2': 4, '3': 3, '4': 2, '5': 1 };
+export const IU_OPTIONS = ['1', '2', '3', '4', '5'];
 
 // ─── Visibility computation ───────────────────────────────────────────────────
 
@@ -448,15 +445,15 @@ function seedRow(depth, vals) {
 const RAW_SEED = [
   seedRow(0, ['Personal']),
   seedRow(1, ['Health & Fitness',            'Need',  '',          '',  '',     '2026-06-30', '',      '',                     'sequential',  '',              '',          'Active']),
-  seedRow(2, ['Run a 5K',                    'Want',  'HM',        '',  '',     '2026-05-01', '',      '',                     'sequential',  '',              '',          'Active']),
-  seedRow(3, ['Training Plan',               'Must',  'HH',        '',  '',     '2026-04-01', '',      '',                     'sequential',  'not r',         '',          'Active']),
+  seedRow(2, ['Run a 5K',                    'Want',  '2',         '',  '',     '2026-05-01', '',      '',                     'sequential',  '',              '',          'Active']),
+  seedRow(3, ['Training Plan',               'Must',  '1',         '',  '',     '2026-04-01', '',      '',                     'sequential',  'not r',         '',          'Active']),
   seedRow(4, ['Register for race',           '',      'work',      '',  '',     '2026-03-20', '09:00', 'https://example.com', '',            'not e',         '',          'Active']),
   seedRow(4, ['Buy running shoes',           '',      'city',      '-120','',   '2026-03-15', '',      '',                     '',            'not e',         '',          'Active']),
-  seedRow(2, ['Improve Diet',                'Want',  'MM',        '',  '',     '',           '',      '',                     'sequential',  '',              '',          'Active']),
+  seedRow(2, ['Improve Diet',                'Want',  '3',         '',  '',     '',           '',      '',                     'sequential',  '',              '',          'Active']),
   seedRow(0, ['Work']),
   seedRow(1, ['Career Growth',               'Must',  '',          '',  '',     '2026-12-31', '',      '',                     'sequential',  '',              '',          'Active']),
-  seedRow(2, ['Launch Side Project',         'Need',  'HH',        '',  '',     '2026-09-01', '',      '',                     'sequential',  '',              '',          'Active']),
-  seedRow(3, ['Build MVP',                   'Must',  'HH',        '',  '',     '2026-07-01', '',      '',                     'sequential',  'not r',         '',          'Active']),
+  seedRow(2, ['Launch Side Project',         'Need',  '1',         '',  '',     '2026-09-01', '',      '',                     'sequential',  '',              '',          'Active']),
+  seedRow(3, ['Build MVP',                   'Must',  '1',         '',  '',     '2026-07-01', '',      '',                     'sequential',  'not r',         '',          'Active']),
   seedRow(4, ['Design wireframes',           '',      'long comp', '',  '',     '2026-04-15', '14:00', '',                     '',            'not e',         '',          'Active']),
 ];
 

@@ -9,7 +9,7 @@ import FilterBar from './FilterBar.jsx';
 // ─── Cell display renderer ────────────────────────────────────────────────────
 
 const REQ_COLOR = { Must: '#ef4444', Need: '#f59e0b', Want: '#3b82f6' };
-const IU_SET    = new Set(['HH','HM','MH','HL','MM','LH','ML','LM','LL']);
+const IMP_COLOR = { '1': '#10b981', '2': '#3b82f6', '3': '#eab308', '4': '#ef4444', '5': '#111827' };
 
 const STATUS_STYLE = {
   Potential: { background: '#1e293b', color: '#94a3b8' },
@@ -79,12 +79,11 @@ function CellDisplay({ val, def }) {
         }}>{val}</span>
       );
     }
-    if (IU_SET.has(val)) {
+    if (IMP_COLOR[val]) {
       return (
         <span style={{
-          background: '#1e2d45', color: '#7dd3fc',
-          borderRadius: 3, padding: '1px 6px',
-          fontFamily: 'monospace', fontWeight: 700,
+          background: IMP_COLOR[val], color: '#fff',
+          borderRadius: 3, padding: '1px 7px', fontWeight: 700,
         }}>{val}</span>
       );
     }

@@ -168,9 +168,9 @@ export default function FilterBar({ filters, onChange, rows }) {
 
       <Divider />
 
-      {/* Imp/Urg */}
+      {/* Importance */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <Label>I/U</Label>
+        <Label>Imp</Label>
         <Sel
           value={filters.iu}
           onChange={v => update('iu', v)}
