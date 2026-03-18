@@ -3,7 +3,7 @@
 export const TYPES = ['Area', 'Goal', 'Project', 'Step', 'Action'];
 
 const REQ_OPTS     = ['', 'Must', 'Need', 'Want'];
-const IU_OPTS      = ['', 'HH', 'HM', 'MH', 'HL', 'MM', 'LH', 'ML', 'LM', 'LL'];
+const IU_OPTS      = ['', '1', '2', '3', '4', '5'];
 const CTX_OPTS     = [
   '', 'phone', 'comp & call', 'quick comp', 'long comp',
   'work', 'home', 'supermarket', 'storage', 'post office',
@@ -18,21 +18,25 @@ const STATUS_OPTS  = ['Potential', 'Active', 'Deferred', 'Done', 'Cancelled'];
 // Column index reference (0-based):
 // 0  name
 // 1  requirement
-// 2  imp/urg | context | empty
+// 2  importance | context | empty
 // 3  $ total (computed) | $ in/out | empty
-// 4  date
-// 5  time | empty
-// 6  link
-// 7  type | empty
-// 8  routine | event | empty
-// 9  enablers | empty
-// 10 status
-// 11 available (computed, never stored)
-// 12 id (readonly) | empty
+// 4  week (ww-yy) | empty
+// 5  priority (computed, never stored) | empty
+// 6  date
+// 7  time | empty
+// 8  link
+// 9  type | empty
+// 10 routine | event | empty
+// 11 enablers | empty
+// 12 status
+// 13 available (computed, never stored)
+// 14 id (readonly) | empty
 
 export const COL_DEFS = {
   Area: [
     { label: 'Area',      type: 'text' },
+    { label: '',          type: 'empty' },
+    { label: '',          type: 'empty' },
     { label: '',          type: 'empty' },
     { label: '',          type: 'empty' },
     { label: '',          type: 'empty' },
@@ -51,6 +55,8 @@ export const COL_DEFS = {
     { label: 'Requirement', type: 'dropdown', options: REQ_OPTS },
     { label: '',            type: 'empty' },
     { label: '$ total',     type: 'currency_sum', readonly: true },
+    { label: 'Week',        type: 'week' },
+    { label: 'Priority',    type: 'priority', readonly: true },
     { label: 'Date',        type: 'date' },
     { label: '',            type: 'empty' },
     { label: 'Link',        type: 'url' },
@@ -64,8 +70,10 @@ export const COL_DEFS = {
   Project: [
     { label: 'Project',     type: 'text' },
     { label: 'Requirement', type: 'dropdown', options: REQ_OPTS },
-    { label: 'Imp/Urg',     type: 'dropdown', options: IU_OPTS },
+    { label: 'Importance',  type: 'dropdown', options: IU_OPTS },
     { label: '$ total',     type: 'currency_sum', readonly: true },
+    { label: 'Week',        type: 'week' },
+    { label: 'Priority',    type: 'priority', readonly: true },
     { label: 'Date',        type: 'date' },
     { label: '',            type: 'empty' },
     { label: 'Link',        type: 'url' },
@@ -79,8 +87,10 @@ export const COL_DEFS = {
   Step: [
     { label: 'Step',        type: 'text' },
     { label: 'Requirement', type: 'dropdown', options: REQ_OPTS },
-    { label: 'Imp/Urg',     type: 'dropdown', options: IU_OPTS },
+    { label: 'Importance',  type: 'dropdown', options: IU_OPTS },
     { label: '$ total',     type: 'currency_sum', readonly: true },
+    { label: 'Week',        type: 'week' },
+    { label: 'Priority',    type: 'priority', readonly: true },
     { label: 'Date',        type: 'date' },
     { label: 'Time',        type: 'time' },
     { label: 'Link',        type: 'url' },
@@ -96,6 +106,8 @@ export const COL_DEFS = {
     { label: '',          type: 'empty' },
     { label: 'Context',   type: 'dropdown', options: CTX_OPTS },
     { label: '$ in/out',  type: 'currency' },
+    { label: '',          type: 'empty' },
+    { label: 'Priority',  type: 'priority', readonly: true },
     { label: 'Date',      type: 'date' },
     { label: 'Time',      type: 'time' },
     { label: 'Link',      type: 'url' },
@@ -108,9 +120,9 @@ export const COL_DEFS = {
   ],
 };
 
-export const COL_WIDTHS = [345, 80, 95, 85, 100, 65, 60, 90, 75, 100, 90, 70, 70];
+export const COL_WIDTHS = [345, 80, 95, 85, 65, 75, 100, 65, 60, 90, 75, 100, 90, 70, 70];
 export const INDENT_PX  = 20;
-export const NUM_COLS   = 13;
+export const NUM_COLS   = 15;
 
 export const TYPE_BADGE_COLOR = {
   Area:    '#e94560',
@@ -136,10 +148,11 @@ export function getType(depth) {
 }
 
 /**
- * Create a new row with 13 values.
- * - ID written into values[12] for Goal/Project/Step.
- * - values[3] ($ sum) cleared for Goal/Project/Step — always computed.
- * - values[11] (Available) always cleared — always computed.
+ * Create a new row with 15 values.
+ * - ID written into values[14] for Goal/Project/Step.
+ * - values[3]  ($ sum) cleared for Goal/Project/Step — always computed.
+ * - values[5]  (Priority) always cleared — always computed.
+ * - values[13] (Available) always cleared — always computed.
  */
 export function makeRow(depth, parentId = null, position = 0, vals = null) {
   const type = getType(depth);
@@ -150,10 +163,11 @@ export function makeRow(depth, parentId = null, position = 0, vals = null) {
   while (values.length < NUM_COLS) values.push('');
 
   if (type === 'Goal' || type === 'Project' || type === 'Step') {
-    values[12] = id;   // ID column
+    values[14] = id;   // ID column
     values[3]  = '';   // $ sum is computed, never stored
   }
-  values[11] = '';     // Available is computed, never stored
+  values[5]  = '';     // Priority is computed, never stored
+  values[13] = '';     // Available is computed, never stored
 
   return { id, parent_id: parentId, position, depth, values };
 }
@@ -203,7 +217,7 @@ export function computeAvailability(rows) {
   const result   = {};   // rowId → '' | 'Yes' | 'No'
   const statusOf = {};   // rowId → status string
 
-  rows.forEach(row => { statusOf[row.id] = row.values[10]; });
+  rows.forEach(row => { statusOf[row.id] = row.values[12]; });
 
   rows.forEach((row, i) => {
     const type = getType(row.depth);
@@ -214,7 +228,7 @@ export function computeAvailability(rows) {
     if (statusOf[row.id] !== 'Active') { result[row.id] = 'No'; return; }
 
     // Rule 2 — all Enablers must be Done or Cancelled
-    const enablersRaw = (row.values[9] || '').trim();
+    const enablersRaw = (row.values[11] || '').trim();
     if (enablersRaw) {
       const ids = enablersRaw.split(',').map(s => s.trim()).filter(Boolean);
       if (ids.some(id => statusOf[id] !== 'Done' && statusOf[id] !== 'Cancelled')) {
@@ -223,7 +237,7 @@ export function computeAvailability(rows) {
     }
 
     // Rule 3 — row inside a Sequential parent (Goal→Project, Project→Step, Step→Step)
-    // Goal/Project/Step all carry their Sequence value at values[7].
+    // Goal/Project/Step all carry their Sequence value at values[8].
     if (type === 'Project' || type === 'Step') {
       let parentIdx = -1;
       for (let j = i - 1; j >= 0; j--) {
@@ -234,7 +248,7 @@ export function computeAvailability(rows) {
         const parentKind = getType(parent.depth);
         // Parents that carry a Sequence field: Goal, Project, Step
         if (parentKind === 'Goal' || parentKind === 'Project' || parentKind === 'Step') {
-          const isSequential = parent.values[7] !== 'parallel'; // default sequential
+          const isSequential = parent.values[9] !== 'parallel'; // default sequential
           if (isSequential) {
             let pe = parentIdx + 1;
             while (pe < rows.length && rows[pe].depth > parent.depth) pe++;
@@ -269,13 +283,97 @@ export function computeAvailability(rows) {
   return result;
 }
 
-// ─── Imp/Urg scoring ─────────────────────────────────────────────────────────
+// ─── Importance scoring (for filter) ─────────────────────────────────────────
 
-export const IU_SCORES = {
-  HH: 5.7, HM: 4.8, MH: 4.7, HL: 3.9, MM: 3.8,
-  LH: 3.7, ML: 2.9, LM: 2.8, LL: 1.9,
-};
-export const IU_OPTIONS = ['HH','HM','MH','HL','MM','LH','ML','LM','LL'];
+export const IU_SCORES = { '1': 5, '2': 4, '3': 3, '4': 2, '5': 1 };
+export const IU_OPTIONS = ['1', '2', '3', '4', '5'];
+
+// ─── Week / Priority helpers ──────────────────────────────────────────────────
+
+/**
+ * Returns the current ISO-like week number and full year using the same
+ * Monday-based rule shown in the app header.
+ */
+export function getCurrentWeek() {
+  const now  = new Date();
+  const year = now.getFullYear();
+  const jan1 = new Date(year, 0, 1);
+  const jan1Day = jan1.getDay(); // 0=Sun … 6=Sat
+
+  let firstMonday;
+  if (jan1Day === 1) {
+    firstMonday = jan1;
+  } else {
+    const daysToMonday = jan1Day === 0 ? 1 : 8 - jan1Day;
+    firstMonday = new Date(year, 0, 1 + daysToMonday);
+  }
+
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  let week;
+  if (today < firstMonday) {
+    week = 1;
+  } else {
+    const weekOffset = jan1Day === 1 ? 1 : 2;
+    const daysSince  = Math.floor((today - firstMonday) / 86400000);
+    week = weekOffset + Math.floor(daysSince / 7);
+  }
+
+  return { week, year };
+}
+
+/**
+ * Compute the Priority field for every row. Returns a map: rowId → 'x.y' | ''.
+ *
+ * For Goal / Project / Step:
+ *   x = importance value (values[2], one of 1–5)
+ *   y = weeks remaining until the week stored in values[4] (ww-yy),
+ *       clamped to 0 — negative values (overdue) become 0.
+ *
+ * For Action rows: inherit the computed priority of the direct parent row.
+ * For Area rows: always ''.
+ *
+ * Rows are processed top-to-bottom so parent priority is resolved first.
+ */
+export function computePriority(rows) {
+  const { week: currentWeek, year: currentYear } = getCurrentWeek();
+  const result = {}; // rowId → string
+
+  rows.forEach((row, i) => {
+    const type = getType(row.depth);
+
+    if (type === 'Area') { result[row.id] = ''; return; }
+
+    if (type === 'Action') {
+      // Inherit from direct parent (nearest row one depth above)
+      for (let j = i - 1; j >= 0; j--) {
+        if (rows[j].depth === row.depth - 1) {
+          result[row.id] = result[rows[j].id] ?? '';
+          return;
+        }
+      }
+      result[row.id] = '';
+      return;
+    }
+
+    // Goal / Project / Step
+    const importance = row.values[2]; // Importance (index 2)
+    const weekStr    = row.values[4]; // Week ww-yy (index 4)
+
+    if (!importance || !weekStr) { result[row.id] = ''; return; }
+
+    const m = weekStr.match(/^(\d{1,2})-(\d{2})$/);
+    if (!m) { result[row.id] = ''; return; }
+
+    const targetWeek = parseInt(m[1], 10);
+    const targetYear = 2000 + parseInt(m[2], 10);
+    const weeksLeft  = Math.max(0, (targetYear - currentYear) * 52 + (targetWeek - currentWeek));
+
+    result[row.id] = `${importance}.${weeksLeft}`;
+  });
+
+  return result;
+}
 
 // ─── Visibility computation ───────────────────────────────────────────────────
 
@@ -414,7 +512,7 @@ export function computeVisible(rows, available, filters) {
       return false;
     }
 
-    applyFilter((idx, row) => passesDate(row.values[4]));
+    applyFilter((idx, row) => passesDate(row.values[6]));
   }
 
   // ── Filter 7: Search ──────────────────────────────────────────────────────
@@ -433,25 +531,25 @@ export function computeVisible(rows, available, filters) {
 function seedRow(depth, vals) {
   const padded = [...vals];
   // Default Status for non-Area rows if not provided
-  if (getType(depth) !== 'Area' && !padded[10]) padded[10] = 'Active';
+  if (getType(depth) !== 'Area' && !padded[12]) padded[12] = 'Active';
   while (padded.length < NUM_COLS) padded.push('');
   return makeRow(depth, null, 0, padded);
 }
 
-//              0:name                       1:req    2:misc       3:$  4:date        5:time   6:link                  7:type         8:routine/event  9:enablers  10:status
+//              0:name                       1:req    2:misc       3:$  4:week  5:pri  6:date        7:time   8:link                  9:type         10:routine/event  11:enablers  12:status
 const RAW_SEED = [
   seedRow(0, ['Personal']),
-  seedRow(1, ['Health & Fitness',            'Need',  '',          '',  '2026-06-30', '',      '',                     'sequential',  '',              '',         'Active']),
-  seedRow(2, ['Run a 5K',                    'Want',  'HM',        '',  '2026-05-01', '',      '',                     'sequential',  '',              '',         'Active']),
-  seedRow(3, ['Training Plan',               'Must',  'HH',        '',  '2026-04-01', '',      '',                     'sequential',  'not r',         '',         'Active']),
-  seedRow(4, ['Register for race',           '',      'work',      '',  '2026-03-20', '09:00', 'https://example.com', '',            'not e',         '',         'Active']),
-  seedRow(4, ['Buy running shoes',           '',      'city',      '-120','2026-03-15','',     '',                     '',            'not e',         '',         'Active']),
-  seedRow(2, ['Improve Diet',                'Want',  'MM',        '',  '',           '',      '',                     'sequential',  '',              '',         'Active']),
+  seedRow(1, ['Health & Fitness',            'Need',  '',          '',  '',     '',    '2026-06-30', '',      '',                     'sequential',  '',               '',          'Active']),
+  seedRow(2, ['Run a 5K',                    'Want',  '2',         '',  '',     '',    '2026-05-01', '',      '',                     'sequential',  '',               '',          'Active']),
+  seedRow(3, ['Training Plan',               'Must',  '1',         '',  '',     '',    '2026-04-01', '',      '',                     'sequential',  'not r',          '',          'Active']),
+  seedRow(4, ['Register for race',           '',      'work',      '',  '',     '',    '2026-03-20', '09:00', 'https://example.com', '',            'not e',          '',          'Active']),
+  seedRow(4, ['Buy running shoes',           '',      'city',      '-120','',   '',    '2026-03-15', '',      '',                     '',            'not e',          '',          'Active']),
+  seedRow(2, ['Improve Diet',                'Want',  '3',         '',  '',     '',    '',           '',      '',                     'sequential',  '',               '',          'Active']),
   seedRow(0, ['Work']),
-  seedRow(1, ['Career Growth',               'Must',  '',          '',  '2026-12-31', '',      '',                     'sequential',  '',              '',         'Active']),
-  seedRow(2, ['Launch Side Project',         'Need',  'HH',        '',  '2026-09-01', '',      '',                     'sequential',  '',              '',         'Active']),
-  seedRow(3, ['Build MVP',                   'Must',  'HH',        '',  '2026-07-01', '',      '',                     'sequential',  'not r',         '',         'Active']),
-  seedRow(4, ['Design wireframes',           '',      'long comp', '',  '2026-04-15', '14:00', '',                     '',            'not e',         '',         'Active']),
+  seedRow(1, ['Career Growth',               'Must',  '',          '',  '',     '',    '2026-12-31', '',      '',                     'sequential',  '',               '',          'Active']),
+  seedRow(2, ['Launch Side Project',         'Need',  '1',         '',  '',     '',    '2026-09-01', '',      '',                     'sequential',  '',               '',          'Active']),
+  seedRow(3, ['Build MVP',                   'Must',  '1',         '',  '',     '',    '2026-07-01', '',      '',                     'sequential',  'not r',          '',          'Active']),
+  seedRow(4, ['Design wireframes',           '',      'long comp', '',  '',     '',    '2026-04-15', '14:00', '',                     '',            'not e',          '',          'Active']),
 ];
 
 export const SEED_ROWS = recomputeStructure(RAW_SEED);

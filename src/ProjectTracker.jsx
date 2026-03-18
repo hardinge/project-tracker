@@ -2,14 +2,15 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   COL_DEFS, COL_WIDTHS, INDENT_PX, NUM_COLS, TYPE_BADGE_COLOR,
   getType, makeRow, recomputeStructure, subtreeRange,
-  computeAvailability, computeVisible, loadRows, saveRows, SEED_ROWS,
+  computeAvailability, computePriority, computeVisible,
+  getCurrentWeek, loadRows, saveRows, SEED_ROWS,
 } from './storage.js';
 import FilterBar from './FilterBar.jsx';
 
 // ─── Cell display renderer ────────────────────────────────────────────────────
 
 const REQ_COLOR = { Must: '#ef4444', Need: '#f59e0b', Want: '#3b82f6' };
-const IU_SET    = new Set(['HH','HM','MH','HL','MM','LH','ML','LM','LL']);
+const IMP_COLOR = { '1': '#10b981', '2': '#3b82f6', '3': '#eab308', '4': '#ef4444', '5': '#111827' };
 
 const STATUS_STYLE = {
   Potential: { background: '#1e293b', color: '#94a3b8' },
@@ -37,6 +38,25 @@ function CellDisplay({ val, def }) {
 
   if (def.type === 'time') {
     return <span style={{ fontFamily: 'monospace' }}>{val}</span>;
+  }
+
+  if (def.type === 'week') {
+    return <span style={{ fontFamily: 'monospace', color: '#7dd3fc' }}>{val}</span>;
+  }
+
+  if (def.type === 'priority') {
+    const y = parseInt(val.split('.')[1], 10);
+    const bg = y === 0 ? '#10b981'
+             : y === 1 ? '#3b82f6'
+             : y === 2 ? '#eab308'
+             : y === 3 ? '#f97316'
+             : y === 4 ? '#ef4444'
+             :            '#111827';
+    return (
+      <span style={{ background: bg, color: '#fff', borderRadius: 3, padding: '1px 7px', fontWeight: 700 }}>
+        {val}
+      </span>
+    );
   }
 
   if (def.type === 'date') {
@@ -75,12 +95,11 @@ function CellDisplay({ val, def }) {
         }}>{val}</span>
       );
     }
-    if (IU_SET.has(val)) {
+    if (IMP_COLOR[val]) {
       return (
         <span style={{
-          background: '#1e2d45', color: '#7dd3fc',
-          borderRadius: 3, padding: '1px 6px',
-          fontFamily: 'monospace', fontWeight: 700,
+          background: IMP_COLOR[val], color: '#fff',
+          borderRadius: 3, padding: '1px 7px', fontWeight: 700,
         }}>{val}</span>
       );
     }
@@ -121,36 +140,20 @@ function CellDisplay({ val, def }) {
   return <span>{val}</span>;
 }
 
-// ─── Week number (Monday-based, custom rule) ──────────────────────────────────
+// ─── Week column format validation ────────────────────────────────────────────
 
-function getCurrentWeekNumber() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const jan1 = new Date(year, 0, 1);
-  const jan1Day = jan1.getDay(); // 0=Sun,1=Mon,...,6=Sat
-
-  // If Jan 1 is Monday → week 1 starts Jan 1
-  // Otherwise → first Monday of year starts week 2
-  let firstMonday;
-  if (jan1Day === 1) {
-    firstMonday = jan1;
-  } else {
-    const daysToMonday = jan1Day === 0 ? 1 : 8 - jan1Day;
-    firstMonday = new Date(year, 0, 1 + daysToMonday);
-  }
-
-  // Normalize to midnight
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  if (today < firstMonday) {
-    // Days before the first Monday (only when Jan 1 isn't Monday)
-    return 1;
-  }
-
-  const weekOffset = jan1Day === 1 ? 1 : 2;
-  const daysSince = Math.floor((today - firstMonday) / 86400000);
-  return weekOffset + Math.floor(daysSince / 7);
+/** Validates ww-yy format (e.g. "27-26"). Week must be 1–53, year 2 digits. */
+function isValidWeek(val) {
+  if (!val) return true;
+  const m = val.match(/^(\d{1,2})-(\d{2})$/);
+  if (!m) return false;
+  const week = parseInt(m[1], 10);
+  return week >= 1 && week <= 53;
 }
+
+// ─── Week number helper ───────────────────────────────────────────────────────
+
+function getCurrentWeekNumber() { return getCurrentWeek().week; }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -189,6 +192,9 @@ export default function ProjectTracker() {
 
   // ── Computed Available ────────────────────────────────────────────────────
   const computedAvailable = useMemo(() => computeAvailability(rows ?? []), [rows]);
+
+  // ── Computed Priority ─────────────────────────────────────────────────────
+  const computedPriority = useMemo(() => computePriority(rows ?? []), [rows]);
 
   // Focus input when editing starts
   useEffect(() => {
@@ -515,6 +521,7 @@ export default function ProjectTracker() {
                   const displayVal =
                     def.type === 'currency_sum' ? (computedSums[row.id] ?? 0)
                     : def.type === 'available'  ? (computedAvailable[row.id] ?? '')
+                    : def.type === 'priority'   ? (computedPriority[row.id] ?? '')
                     : def.type === 'id'         ? row.id
                     : row.values[colIdx];
 
@@ -586,12 +593,28 @@ export default function ProjectTracker() {
                           <input
                             ref={inputRef}
                             type={def.type === 'date' ? 'date' : 'text'}
-                            placeholder={def.type === 'time' ? 'HH:MM' : undefined}
+                            placeholder={
+                              def.type === 'time' ? 'HH:MM'
+                              : def.type === 'week' ? 'WW-YY'
+                              : undefined
+                            }
                             value={row.values[colIdx]}
                             onChange={e => updateCell(row.id, colIdx, e.target.value)}
+                            onBlur={e => {
+                              if (def.type === 'week' && !isValidWeek(e.target.value)) {
+                                updateCell(row.id, colIdx, '');
+                              }
+                            }}
                             onKeyDown={e => {
                               e.stopPropagation();
-                              if (e.key === 'Enter') { e.preventDefault(); setEditing(false); containerRef.current?.focus(); }
+                              if (e.key === 'Enter') {
+                                if (def.type === 'week' && !isValidWeek(row.values[colIdx])) {
+                                  updateCell(row.id, colIdx, '');
+                                }
+                                e.preventDefault();
+                                setEditing(false);
+                                containerRef.current?.focus();
+                              }
                             }}
                             style={{
                               flex: 1, background: 'transparent', border: 'none',
