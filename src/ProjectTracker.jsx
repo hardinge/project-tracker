@@ -121,6 +121,37 @@ function CellDisplay({ val, def }) {
   return <span>{val}</span>;
 }
 
+// ─── Week number (Monday-based, custom rule) ──────────────────────────────────
+
+function getCurrentWeekNumber() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const jan1 = new Date(year, 0, 1);
+  const jan1Day = jan1.getDay(); // 0=Sun,1=Mon,...,6=Sat
+
+  // If Jan 1 is Monday → week 1 starts Jan 1
+  // Otherwise → first Monday of year starts week 2
+  let firstMonday;
+  if (jan1Day === 1) {
+    firstMonday = jan1;
+  } else {
+    const daysToMonday = jan1Day === 0 ? 1 : 8 - jan1Day;
+    firstMonday = new Date(year, 0, 1 + daysToMonday);
+  }
+
+  // Normalize to midnight
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (today < firstMonday) {
+    // Days before the first Monday (only when Jan 1 isn't Monday)
+    return 1;
+  }
+
+  const weekOffset = jan1Day === 1 ? 1 : 2;
+  const daysSince = Math.floor((today - firstMonday) / 86400000);
+  return weekOffset + Math.floor(daysSince / 7);
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ProjectTracker() {
@@ -407,7 +438,13 @@ export default function ProjectTracker() {
         <span style={{ fontSize: 17, fontWeight: 700, color: '#e2e8f0', letterSpacing: 1 }}>
           ◈ PROJECT TRACKER
         </span>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 20, fontSize: 13, color: '#475569' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 20, fontSize: 13, color: '#475569' }}>
+          <span style={{
+            background: '#1e2235', borderRadius: 4, padding: '2px 8px',
+            color: '#64748b', fontWeight: 700, letterSpacing: 1, fontSize: 12,
+          }}>
+            W{getCurrentWeekNumber()}
+          </span>
           {[
             ['↑↓←→',       'navigate'],
             ['Enter',       'edit'],
