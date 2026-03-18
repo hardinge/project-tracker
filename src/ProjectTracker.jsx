@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  COL_DEFS, COL_WIDTHS, INDENT_PX, NUM_COLS, TYPE_BADGE_COLOR,
+  COL_DEFS, COL_ORDER, COL_WIDTHS, INDENT_PX, NUM_COLS, TYPE_BADGE_COLOR,
   getType, makeRow, recomputeStructure, subtreeRange,
   computeAvailability, computePriority, computeVisible,
   getCurrentWeek, loadRows, saveRows, SEED_ROWS,
@@ -518,12 +518,13 @@ export default function ProjectTracker() {
                   const def = defs[colIdx];
 
                   // Resolve display value — computed fields override stored
+                  const dataIdx = COL_ORDER[colIdx];
                   const displayVal =
                     def.type === 'currency_sum' ? (computedSums[row.id] ?? 0)
                     : def.type === 'available'  ? (computedAvailable[row.id] ?? '')
                     : def.type === 'priority'   ? (computedPriority[row.id] ?? '')
                     : def.type === 'id'         ? row.id
-                    : row.values[colIdx];
+                    : row.values[dataIdx];
 
                   const isSelCell  = isSelRow && sel.c === colIdx;
                   const isEditCell = isSelCell && editing && !def.readonly;
@@ -573,8 +574,8 @@ export default function ProjectTracker() {
                         def.type === 'dropdown' || def.type === 'status' ? (
                           <select
                             ref={inputRef}
-                            value={row.values[colIdx]}
-                            onChange={e => updateCell(row.id, colIdx, e.target.value)}
+                            value={row.values[dataIdx]}
+                            onChange={e => updateCell(row.id, dataIdx, e.target.value)}
                             onKeyDown={e => {
                               if (e.key === 'Enter') { e.preventDefault(); setEditing(false); containerRef.current?.focus(); }
                               e.stopPropagation();
@@ -598,18 +599,18 @@ export default function ProjectTracker() {
                               : def.type === 'week' ? 'WW-YY'
                               : undefined
                             }
-                            value={row.values[colIdx]}
-                            onChange={e => updateCell(row.id, colIdx, e.target.value)}
+                            value={row.values[dataIdx]}
+                            onChange={e => updateCell(row.id, dataIdx, e.target.value)}
                             onBlur={e => {
                               if (def.type === 'week' && !isValidWeek(e.target.value)) {
-                                updateCell(row.id, colIdx, '');
+                                updateCell(row.id, dataIdx, '');
                               }
                             }}
                             onKeyDown={e => {
                               e.stopPropagation();
                               if (e.key === 'Enter') {
-                                if (def.type === 'week' && !isValidWeek(row.values[colIdx])) {
-                                  updateCell(row.id, colIdx, '');
+                                if (def.type === 'week' && !isValidWeek(row.values[dataIdx])) {
+                                  updateCell(row.id, dataIdx, '');
                                 }
                                 e.preventDefault();
                                 setEditing(false);
