@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   COL_DEFS, COL_WIDTHS, INDENT_PX, NUM_COLS, TYPE_BADGE_COLOR,
   getType, makeRow, recomputeStructure, subtreeRange,
-  computeAvailability, computeVisible, loadRows, saveRows, SEED_ROWS,
+  computeAvailability, computePriority, computeVisible,
+  getCurrentWeek, loadRows, saveRows, SEED_ROWS,
 } from './storage.js';
 import FilterBar from './FilterBar.jsx';
 
@@ -41,6 +42,21 @@ function CellDisplay({ val, def }) {
 
   if (def.type === 'week') {
     return <span style={{ fontFamily: 'monospace', color: '#7dd3fc' }}>{val}</span>;
+  }
+
+  if (def.type === 'priority') {
+    const y = parseInt(val.split('.')[1], 10);
+    const bg = y === 0 ? '#10b981'
+             : y === 1 ? '#3b82f6'
+             : y === 2 ? '#eab308'
+             : y === 3 ? '#f97316'
+             : y === 4 ? '#ef4444'
+             :            '#111827';
+    return (
+      <span style={{ background: bg, color: '#fff', borderRadius: 3, padding: '1px 7px', fontWeight: 700 }}>
+        {val}
+      </span>
+    );
   }
 
   if (def.type === 'date') {
@@ -135,36 +151,9 @@ function isValidWeek(val) {
   return week >= 1 && week <= 53;
 }
 
-// ─── Week number (Monday-based, custom rule) ──────────────────────────────────
+// ─── Week number helper ───────────────────────────────────────────────────────
 
-function getCurrentWeekNumber() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const jan1 = new Date(year, 0, 1);
-  const jan1Day = jan1.getDay(); // 0=Sun,1=Mon,...,6=Sat
-
-  // If Jan 1 is Monday → week 1 starts Jan 1
-  // Otherwise → first Monday of year starts week 2
-  let firstMonday;
-  if (jan1Day === 1) {
-    firstMonday = jan1;
-  } else {
-    const daysToMonday = jan1Day === 0 ? 1 : 8 - jan1Day;
-    firstMonday = new Date(year, 0, 1 + daysToMonday);
-  }
-
-  // Normalize to midnight
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  if (today < firstMonday) {
-    // Days before the first Monday (only when Jan 1 isn't Monday)
-    return 1;
-  }
-
-  const weekOffset = jan1Day === 1 ? 1 : 2;
-  const daysSince = Math.floor((today - firstMonday) / 86400000);
-  return weekOffset + Math.floor(daysSince / 7);
-}
+function getCurrentWeekNumber() { return getCurrentWeek().week; }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -203,6 +192,9 @@ export default function ProjectTracker() {
 
   // ── Computed Available ────────────────────────────────────────────────────
   const computedAvailable = useMemo(() => computeAvailability(rows ?? []), [rows]);
+
+  // ── Computed Priority ─────────────────────────────────────────────────────
+  const computedPriority = useMemo(() => computePriority(rows ?? []), [rows]);
 
   // Focus input when editing starts
   useEffect(() => {
@@ -529,6 +521,7 @@ export default function ProjectTracker() {
                   const displayVal =
                     def.type === 'currency_sum' ? (computedSums[row.id] ?? 0)
                     : def.type === 'available'  ? (computedAvailable[row.id] ?? '')
+                    : def.type === 'priority'   ? (computedPriority[row.id] ?? '')
                     : def.type === 'id'         ? row.id
                     : row.values[colIdx];
 
