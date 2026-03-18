@@ -39,6 +39,13 @@ function CellDisplay({ val, def }) {
     return <span style={{ fontFamily: 'monospace' }}>{val}</span>;
   }
 
+  if (def.type === 'date') {
+    const d = new Date(val + 'T00:00:00');
+    if (isNaN(d)) return <span>{val}</span>;
+    const day = d.toLocaleDateString('en-GB', { weekday: 'short' });
+    return <span>{day} {d.getDate()}-{d.getMonth() + 1}-{d.getFullYear()}</span>;
+  }
+
   if (def.type === 'id') {
     return <span style={{ fontFamily: 'monospace', letterSpacing: '0.5px' }}>{val}</span>;
   }
@@ -125,7 +132,7 @@ export default function ProjectTracker() {
     area:       '',
     types:      new Set(['Goal','Project','Step','Action']),
     nextAction: 'all',
-    req:        new Set(['Must','Need','Want']),
+    req:        new Set(['Must','Need','Want','']),
     iu:         '',
     date:       '',
     search:     '',

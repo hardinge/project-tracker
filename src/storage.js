@@ -354,8 +354,8 @@ export function computeVisible(rows, available, filters) {
   }
 
   // ── Filter 4: Requirement ─────────────────────────────────────────────────
-  const reqEnabled = req ?? new Set(['Must','Need','Want']);
-  if (reqEnabled.size < 3) {
+  const reqEnabled = req ?? new Set(['Must','Need','Want','']);
+  if (reqEnabled.size < 4) {
     // Collect non-Action rows that pass req, then let Actions inherit from parent.
     const passedNonAction = new Set();
     for (const idx of indices) {

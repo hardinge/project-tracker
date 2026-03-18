@@ -38,6 +38,7 @@ const REQ_COLORS = {
   Must: { active: '#3a0a0a', border: '#ef4444' },
   Need: { active: '#3a2600', border: '#f59e0b' },
   Want: { active: '#0a1a3a', border: '#3b82f6' },
+  '':   { active: '#1a1a2e', border: '#64748b' },
 };
 
 function ToggleBtn({ active, onClick, color, border, children }) {
@@ -152,15 +153,15 @@ export default function FilterBar({ filters, onChange, rows }) {
       {/* Requirement toggles */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <Label>Req</Label>
-        {['Must','Need','Want'].map(r => (
+        {['Must','Need','Want',''].map(r => (
           <ToggleBtn
-            key={r}
+            key={r || 'X'}
             active={filters.req.has(r)}
             onClick={() => toggleReq(r)}
             color={REQ_COLORS[r].active}
             border={REQ_COLORS[r].border}
           >
-            {r[0]}
+            {r === '' ? 'X' : r[0]}
           </ToggleBtn>
         ))}
       </div>
