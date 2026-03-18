@@ -39,6 +39,10 @@ function CellDisplay({ val, def }) {
     return <span style={{ fontFamily: 'monospace' }}>{val}</span>;
   }
 
+  if (def.type === 'week') {
+    return <span style={{ fontFamily: 'monospace', color: '#7dd3fc' }}>{val}</span>;
+  }
+
   if (def.type === 'date') {
     const d = new Date(val + 'T00:00:00');
     if (isNaN(d)) return <span>{val}</span>;
@@ -119,6 +123,17 @@ function CellDisplay({ val, def }) {
   }
 
   return <span>{val}</span>;
+}
+
+// ─── Week column format validation ────────────────────────────────────────────
+
+/** Validates ww-yy format (e.g. "27-26"). Week must be 1–53, year 2 digits. */
+function isValidWeek(val) {
+  if (!val) return true;
+  const m = val.match(/^(\d{1,2})-(\d{2})$/);
+  if (!m) return false;
+  const week = parseInt(m[1], 10);
+  return week >= 1 && week <= 53;
 }
 
 // ─── Week number (Monday-based, custom rule) ──────────────────────────────────
@@ -586,12 +601,28 @@ export default function ProjectTracker() {
                           <input
                             ref={inputRef}
                             type={def.type === 'date' ? 'date' : 'text'}
-                            placeholder={def.type === 'time' ? 'HH:MM' : undefined}
+                            placeholder={
+                              def.type === 'time' ? 'HH:MM'
+                              : def.type === 'week' ? 'WW-YY'
+                              : undefined
+                            }
                             value={row.values[colIdx]}
                             onChange={e => updateCell(row.id, colIdx, e.target.value)}
+                            onBlur={e => {
+                              if (def.type === 'week' && !isValidWeek(e.target.value)) {
+                                updateCell(row.id, colIdx, '');
+                              }
+                            }}
                             onKeyDown={e => {
                               e.stopPropagation();
-                              if (e.key === 'Enter') { e.preventDefault(); setEditing(false); containerRef.current?.focus(); }
+                              if (e.key === 'Enter') {
+                                if (def.type === 'week' && !isValidWeek(row.values[colIdx])) {
+                                  updateCell(row.id, colIdx, '');
+                                }
+                                e.preventDefault();
+                                setEditing(false);
+                                containerRef.current?.focus();
+                              }
                             }}
                             style={{
                               flex: 1, background: 'transparent', border: 'none',

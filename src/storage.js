@@ -20,19 +20,21 @@ const STATUS_OPTS  = ['Potential', 'Active', 'Deferred', 'Done', 'Cancelled'];
 // 1  requirement
 // 2  imp/urg | context | empty
 // 3  $ total (computed) | $ in/out | empty
-// 4  date
-// 5  time | empty
-// 6  link
-// 7  type | empty
-// 8  routine | event | empty
-// 9  enablers | empty
-// 10 status
-// 11 available (computed, never stored)
-// 12 id (readonly) | empty
+// 4  week (ww-yy) | empty
+// 5  date
+// 6  time | empty
+// 7  link
+// 8  type | empty
+// 9  routine | event | empty
+// 10 enablers | empty
+// 11 status
+// 12 available (computed, never stored)
+// 13 id (readonly) | empty
 
 export const COL_DEFS = {
   Area: [
     { label: 'Area',      type: 'text' },
+    { label: '',          type: 'empty' },
     { label: '',          type: 'empty' },
     { label: '',          type: 'empty' },
     { label: '',          type: 'empty' },
@@ -51,6 +53,7 @@ export const COL_DEFS = {
     { label: 'Requirement', type: 'dropdown', options: REQ_OPTS },
     { label: '',            type: 'empty' },
     { label: '$ total',     type: 'currency_sum', readonly: true },
+    { label: 'Week',        type: 'week' },
     { label: 'Date',        type: 'date' },
     { label: '',            type: 'empty' },
     { label: 'Link',        type: 'url' },
@@ -66,6 +69,7 @@ export const COL_DEFS = {
     { label: 'Requirement', type: 'dropdown', options: REQ_OPTS },
     { label: 'Imp/Urg',     type: 'dropdown', options: IU_OPTS },
     { label: '$ total',     type: 'currency_sum', readonly: true },
+    { label: 'Week',        type: 'week' },
     { label: 'Date',        type: 'date' },
     { label: '',            type: 'empty' },
     { label: 'Link',        type: 'url' },
@@ -81,6 +85,7 @@ export const COL_DEFS = {
     { label: 'Requirement', type: 'dropdown', options: REQ_OPTS },
     { label: 'Imp/Urg',     type: 'dropdown', options: IU_OPTS },
     { label: '$ total',     type: 'currency_sum', readonly: true },
+    { label: 'Week',        type: 'week' },
     { label: 'Date',        type: 'date' },
     { label: 'Time',        type: 'time' },
     { label: 'Link',        type: 'url' },
@@ -96,6 +101,7 @@ export const COL_DEFS = {
     { label: '',          type: 'empty' },
     { label: 'Context',   type: 'dropdown', options: CTX_OPTS },
     { label: '$ in/out',  type: 'currency' },
+    { label: '',          type: 'empty' },
     { label: 'Date',      type: 'date' },
     { label: 'Time',      type: 'time' },
     { label: 'Link',      type: 'url' },
@@ -108,9 +114,9 @@ export const COL_DEFS = {
   ],
 };
 
-export const COL_WIDTHS = [345, 80, 95, 85, 100, 65, 60, 90, 75, 100, 90, 70, 70];
+export const COL_WIDTHS = [345, 80, 95, 85, 65, 100, 65, 60, 90, 75, 100, 90, 70, 70];
 export const INDENT_PX  = 20;
-export const NUM_COLS   = 13;
+export const NUM_COLS   = 14;
 
 export const TYPE_BADGE_COLOR = {
   Area:    '#e94560',
@@ -137,9 +143,9 @@ export function getType(depth) {
 
 /**
  * Create a new row with 13 values.
- * - ID written into values[12] for Goal/Project/Step.
+ * - ID written into values[13] for Goal/Project/Step.
  * - values[3] ($ sum) cleared for Goal/Project/Step — always computed.
- * - values[11] (Available) always cleared — always computed.
+ * - values[12] (Available) always cleared — always computed.
  */
 export function makeRow(depth, parentId = null, position = 0, vals = null) {
   const type = getType(depth);
@@ -150,10 +156,10 @@ export function makeRow(depth, parentId = null, position = 0, vals = null) {
   while (values.length < NUM_COLS) values.push('');
 
   if (type === 'Goal' || type === 'Project' || type === 'Step') {
-    values[12] = id;   // ID column
+    values[13] = id;   // ID column
     values[3]  = '';   // $ sum is computed, never stored
   }
-  values[11] = '';     // Available is computed, never stored
+  values[12] = '';     // Available is computed, never stored
 
   return { id, parent_id: parentId, position, depth, values };
 }
@@ -203,7 +209,7 @@ export function computeAvailability(rows) {
   const result   = {};   // rowId → '' | 'Yes' | 'No'
   const statusOf = {};   // rowId → status string
 
-  rows.forEach(row => { statusOf[row.id] = row.values[10]; });
+  rows.forEach(row => { statusOf[row.id] = row.values[11]; });
 
   rows.forEach((row, i) => {
     const type = getType(row.depth);
@@ -214,7 +220,7 @@ export function computeAvailability(rows) {
     if (statusOf[row.id] !== 'Active') { result[row.id] = 'No'; return; }
 
     // Rule 2 — all Enablers must be Done or Cancelled
-    const enablersRaw = (row.values[9] || '').trim();
+    const enablersRaw = (row.values[10] || '').trim();
     if (enablersRaw) {
       const ids = enablersRaw.split(',').map(s => s.trim()).filter(Boolean);
       if (ids.some(id => statusOf[id] !== 'Done' && statusOf[id] !== 'Cancelled')) {
@@ -223,7 +229,7 @@ export function computeAvailability(rows) {
     }
 
     // Rule 3 — row inside a Sequential parent (Goal→Project, Project→Step, Step→Step)
-    // Goal/Project/Step all carry their Sequence value at values[7].
+    // Goal/Project/Step all carry their Sequence value at values[8].
     if (type === 'Project' || type === 'Step') {
       let parentIdx = -1;
       for (let j = i - 1; j >= 0; j--) {
@@ -234,7 +240,7 @@ export function computeAvailability(rows) {
         const parentKind = getType(parent.depth);
         // Parents that carry a Sequence field: Goal, Project, Step
         if (parentKind === 'Goal' || parentKind === 'Project' || parentKind === 'Step') {
-          const isSequential = parent.values[7] !== 'parallel'; // default sequential
+          const isSequential = parent.values[8] !== 'parallel'; // default sequential
           if (isSequential) {
             let pe = parentIdx + 1;
             while (pe < rows.length && rows[pe].depth > parent.depth) pe++;
@@ -414,7 +420,7 @@ export function computeVisible(rows, available, filters) {
       return false;
     }
 
-    applyFilter((idx, row) => passesDate(row.values[4]));
+    applyFilter((idx, row) => passesDate(row.values[5]));
   }
 
   // ── Filter 7: Search ──────────────────────────────────────────────────────
@@ -433,25 +439,25 @@ export function computeVisible(rows, available, filters) {
 function seedRow(depth, vals) {
   const padded = [...vals];
   // Default Status for non-Area rows if not provided
-  if (getType(depth) !== 'Area' && !padded[10]) padded[10] = 'Active';
+  if (getType(depth) !== 'Area' && !padded[11]) padded[11] = 'Active';
   while (padded.length < NUM_COLS) padded.push('');
   return makeRow(depth, null, 0, padded);
 }
 
-//              0:name                       1:req    2:misc       3:$  4:date        5:time   6:link                  7:type         8:routine/event  9:enablers  10:status
+//              0:name                       1:req    2:misc       3:$  4:week  5:date        6:time   7:link                  8:type         9:routine/event  10:enablers  11:status
 const RAW_SEED = [
   seedRow(0, ['Personal']),
-  seedRow(1, ['Health & Fitness',            'Need',  '',          '',  '2026-06-30', '',      '',                     'sequential',  '',              '',         'Active']),
-  seedRow(2, ['Run a 5K',                    'Want',  'HM',        '',  '2026-05-01', '',      '',                     'sequential',  '',              '',         'Active']),
-  seedRow(3, ['Training Plan',               'Must',  'HH',        '',  '2026-04-01', '',      '',                     'sequential',  'not r',         '',         'Active']),
-  seedRow(4, ['Register for race',           '',      'work',      '',  '2026-03-20', '09:00', 'https://example.com', '',            'not e',         '',         'Active']),
-  seedRow(4, ['Buy running shoes',           '',      'city',      '-120','2026-03-15','',     '',                     '',            'not e',         '',         'Active']),
-  seedRow(2, ['Improve Diet',                'Want',  'MM',        '',  '',           '',      '',                     'sequential',  '',              '',         'Active']),
+  seedRow(1, ['Health & Fitness',            'Need',  '',          '',  '',     '2026-06-30', '',      '',                     'sequential',  '',              '',          'Active']),
+  seedRow(2, ['Run a 5K',                    'Want',  'HM',        '',  '',     '2026-05-01', '',      '',                     'sequential',  '',              '',          'Active']),
+  seedRow(3, ['Training Plan',               'Must',  'HH',        '',  '',     '2026-04-01', '',      '',                     'sequential',  'not r',         '',          'Active']),
+  seedRow(4, ['Register for race',           '',      'work',      '',  '',     '2026-03-20', '09:00', 'https://example.com', '',            'not e',         '',          'Active']),
+  seedRow(4, ['Buy running shoes',           '',      'city',      '-120','',   '2026-03-15', '',      '',                     '',            'not e',         '',          'Active']),
+  seedRow(2, ['Improve Diet',                'Want',  'MM',        '',  '',     '',           '',      '',                     'sequential',  '',              '',          'Active']),
   seedRow(0, ['Work']),
-  seedRow(1, ['Career Growth',               'Must',  '',          '',  '2026-12-31', '',      '',                     'sequential',  '',              '',         'Active']),
-  seedRow(2, ['Launch Side Project',         'Need',  'HH',        '',  '2026-09-01', '',      '',                     'sequential',  '',              '',         'Active']),
-  seedRow(3, ['Build MVP',                   'Must',  'HH',        '',  '2026-07-01', '',      '',                     'sequential',  'not r',         '',         'Active']),
-  seedRow(4, ['Design wireframes',           '',      'long comp', '',  '2026-04-15', '14:00', '',                     '',            'not e',         '',         'Active']),
+  seedRow(1, ['Career Growth',               'Must',  '',          '',  '',     '2026-12-31', '',      '',                     'sequential',  '',              '',          'Active']),
+  seedRow(2, ['Launch Side Project',         'Need',  'HH',        '',  '',     '2026-09-01', '',      '',                     'sequential',  '',              '',          'Active']),
+  seedRow(3, ['Build MVP',                   'Must',  'HH',        '',  '',     '2026-07-01', '',      '',                     'sequential',  'not r',         '',          'Active']),
+  seedRow(4, ['Design wireframes',           '',      'long comp', '',  '',     '2026-04-15', '14:00', '',                     '',            'not e',         '',          'Active']),
 ];
 
 export const SEED_ROWS = recomputeStructure(RAW_SEED);
