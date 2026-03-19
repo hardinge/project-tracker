@@ -372,7 +372,7 @@ export function computePriority(rows) {
     const targetYear = 2000 + parseInt(m[2], 10);
     const weeksLeft  = Math.max(0, (targetYear - currentYear) * 52 + (targetWeek - currentWeek));
 
-    result[row.id] = `${importance}.${weeksLeft}`;
+    result[row.id] = `${weeksLeft}.${importance}`;
   });
 
   return result;
