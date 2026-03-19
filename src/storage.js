@@ -32,16 +32,16 @@ const STATUS_OPTS  = ['Potential', 'Active', 'Deferred', 'Done', 'Cancelled'];
 // 14 id (readonly) | empty
 
 // Display column order: maps display position → data index
-// Display: name | importance | week | priority | (unused) | date | time | $ total | link | sequence | routine | enablers | status | available | id
-export const COL_ORDER = [0, 2, 4, 5, 1, 6, 7, 3, 8, 9, 10, 11, 12, 13, 14];
+// Display: name | (unused) | week | priority | context | date | time | $ total | link | sequence | routine | enablers | status | available | id
+export const COL_ORDER = [0, 1, 4, 5, 2, 6, 7, 3, 8, 9, 10, 11, 12, 13, 14];
 
 export const COL_DEFS = {
   Area: [
     { label: 'Area',      type: 'text' },  // display 0 → data 0
-    { label: '',          type: 'empty' }, // display 1 → data 2
+    { label: '',          type: 'empty' }, // display 1 → data 1
     { label: '',          type: 'empty' }, // display 2 → data 4
     { label: '',          type: 'empty' }, // display 3 → data 5
-    { label: '',          type: 'empty' }, // display 4 → data 1
+    { label: '',          type: 'empty' }, // display 4 → data 2
     { label: '',          type: 'empty' }, // display 5 → data 6
     { label: '',          type: 'empty' }, // display 6 → data 7
     { label: '',          type: 'empty' }, // display 7 → data 3
@@ -55,10 +55,10 @@ export const COL_DEFS = {
   ],
   Goal: [
     { label: 'Goal',        type: 'text' },                                          // display 0 → data 0
-    { label: '',            type: 'empty' },                                         // display 1 → data 2
+    { label: '',            type: 'empty' },                                         // display 1 → data 1
     { label: 'Week',        type: 'week' },                                          // display 2 → data 4
     { label: 'Priority',    type: 'priority', readonly: true },                      // display 3 → data 5
-    { label: '',            type: 'empty' },                                         // display 4 → data 1
+    { label: '',            type: 'empty' },                                         // display 4 → data 2
     { label: 'Date',        type: 'date' },                                          // display 5 → data 6
     { label: '',            type: 'empty' },                                         // display 6 → data 7
     { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 7 → data 3
@@ -72,10 +72,10 @@ export const COL_DEFS = {
   ],
   Project: [
     { label: 'Project',     type: 'text' },                                          // display 0 → data 0
-    { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 1 → data 2
+    { label: '',            type: 'empty' },                                         // display 1 → data 1
     { label: 'Week',        type: 'week' },                                          // display 2 → data 4
     { label: 'Priority',    type: 'priority', readonly: true },                      // display 3 → data 5
-    { label: '',            type: 'empty' },                                         // display 4 → data 1
+    { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 4 → data 2
     { label: 'Date',        type: 'date' },                                          // display 5 → data 6
     { label: '',            type: 'empty' },                                         // display 6 → data 7
     { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 7 → data 3
@@ -89,10 +89,10 @@ export const COL_DEFS = {
   ],
   Step: [
     { label: 'Step',        type: 'text' },                                          // display 0 → data 0
-    { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 1 → data 2
+    { label: '',            type: 'empty' },                                         // display 1 → data 1
     { label: 'Week',        type: 'week' },                                          // display 2 → data 4
     { label: 'Priority',    type: 'priority', readonly: true },                      // display 3 → data 5
-    { label: '',            type: 'empty' },                                         // display 4 → data 1
+    { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 4 → data 2
     { label: 'Date',        type: 'date' },                                          // display 5 → data 6
     { label: 'Time',        type: 'time' },                                          // display 6 → data 7
     { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 7 → data 3
@@ -106,10 +106,10 @@ export const COL_DEFS = {
   ],
   Action: [
     { label: 'Action',    type: 'text' },                                            // display 0 → data 0
-    { label: 'Context',   type: 'dropdown', options: CTX_OPTS },                     // display 1 → data 2
+    { label: '',          type: 'empty' },                                           // display 1 → data 1
     { label: '',          type: 'empty' },                                           // display 2 → data 4
     { label: 'Priority',  type: 'priority', readonly: true },                        // display 3 → data 5
-    { label: '',          type: 'empty' },                                           // display 4 → data 1
+    { label: 'Context',   type: 'dropdown', options: CTX_OPTS },                     // display 4 → data 2
     { label: 'Date',      type: 'date' },                                            // display 5 → data 6
     { label: 'Time',      type: 'time' },                                            // display 6 → data 7
     { label: '$ in/out',  type: 'currency' },                                        // display 7 → data 3
@@ -123,7 +123,7 @@ export const COL_DEFS = {
   ],
 };
 
-export const COL_WIDTHS = [345, 95, 65, 75, 80, 100, 65, 85, 60, 90, 75, 100, 90, 70, 70];
+export const COL_WIDTHS = [345, 80, 65, 75, 95, 100, 65, 85, 60, 90, 75, 100, 90, 70, 70];
 export const INDENT_PX  = 20;
 export const NUM_COLS   = 15;
 
