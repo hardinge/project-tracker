@@ -2,7 +2,6 @@
 
 export const TYPES = ['Area', 'Goal', 'Project', 'Step', 'Action'];
 
-const REQ_OPTS     = ['', 'Must', 'Need', 'Want'];
 const IU_OPTS      = ['', '1', '2', '3', '4', '5'];
 const CTX_OPTS     = [
   '', 'phone', 'comp & call', 'quick comp', 'long comp',
@@ -17,7 +16,7 @@ const STATUS_OPTS  = ['Potential', 'Active', 'Deferred', 'Done', 'Cancelled'];
 
 // Data index reference (0-based, fixed — never reorder stored values):
 // 0  name
-// 1  requirement
+// 1  (unused)
 // 2  importance | context | empty
 // 3  $ total (computed) | $ in/out | empty
 // 4  week (ww-yy) | empty
@@ -33,7 +32,7 @@ const STATUS_OPTS  = ['Potential', 'Active', 'Deferred', 'Done', 'Cancelled'];
 // 14 id (readonly) | empty
 
 // Display column order: maps display position → data index
-// Display: name | importance | week | priority | requirement | date | time | $ total | link | sequence | routine | enablers | status | available | id
+// Display: name | importance | week | priority | (unused) | date | time | $ total | link | sequence | routine | enablers | status | available | id
 export const COL_ORDER = [0, 2, 4, 5, 1, 6, 7, 3, 8, 9, 10, 11, 12, 13, 14];
 
 export const COL_DEFS = {
@@ -59,7 +58,7 @@ export const COL_DEFS = {
     { label: '',            type: 'empty' },                                         // display 1 → data 2
     { label: 'Week',        type: 'week' },                                          // display 2 → data 4
     { label: 'Priority',    type: 'priority', readonly: true },                      // display 3 → data 5
-    { label: 'Requirement', type: 'dropdown', options: REQ_OPTS },                   // display 4 → data 1
+    { label: '',            type: 'empty' },                                         // display 4 → data 1
     { label: 'Date',        type: 'date' },                                          // display 5 → data 6
     { label: '',            type: 'empty' },                                         // display 6 → data 7
     { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 7 → data 3
@@ -76,7 +75,7 @@ export const COL_DEFS = {
     { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 1 → data 2
     { label: 'Week',        type: 'week' },                                          // display 2 → data 4
     { label: 'Priority',    type: 'priority', readonly: true },                      // display 3 → data 5
-    { label: 'Requirement', type: 'dropdown', options: REQ_OPTS },                   // display 4 → data 1
+    { label: '',            type: 'empty' },                                         // display 4 → data 1
     { label: 'Date',        type: 'date' },                                          // display 5 → data 6
     { label: '',            type: 'empty' },                                         // display 6 → data 7
     { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 7 → data 3
@@ -93,7 +92,7 @@ export const COL_DEFS = {
     { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 1 → data 2
     { label: 'Week',        type: 'week' },                                          // display 2 → data 4
     { label: 'Priority',    type: 'priority', readonly: true },                      // display 3 → data 5
-    { label: 'Requirement', type: 'dropdown', options: REQ_OPTS },                   // display 4 → data 1
+    { label: '',            type: 'empty' },                                         // display 4 → data 1
     { label: 'Date',        type: 'date' },                                          // display 5 → data 6
     { label: 'Time',        type: 'time' },                                          // display 6 → data 7
     { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 7 → data 3

@@ -9,7 +9,6 @@ import FilterBar from './FilterBar.jsx';
 
 // ─── Cell display renderer ────────────────────────────────────────────────────
 
-const REQ_COLOR = { Must: '#ef4444', Need: '#f59e0b', Want: '#3b82f6' };
 const IMP_COLOR = { '1': '#10b981', '2': '#3b82f6', '3': '#eab308', '4': '#ef4444', '5': '#111827' };
 
 const STATUS_STYLE = {
@@ -87,14 +86,6 @@ function CellDisplay({ val, def }) {
   }
 
   if (def.type === 'dropdown') {
-    if (REQ_COLOR[val]) {
-      return (
-        <span style={{
-          background: REQ_COLOR[val], color: '#fff',
-          borderRadius: 3, padding: '1px 7px', fontWeight: 700,
-        }}>{val}</span>
-      );
-    }
     if (IMP_COLOR[val]) {
       return (
         <span style={{
