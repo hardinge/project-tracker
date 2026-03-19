@@ -106,10 +106,10 @@ export const COL_DEFS = {
   ],
   Action: [
     { label: 'Action',    type: 'text' },                                            // display 0 → data 0
-    { label: 'Context',   type: 'dropdown', options: CTX_OPTS },                     // display 1 → data 2
+    { label: '',          type: 'empty' },                                           // display 1 → data 2
     { label: '',          type: 'empty' },                                           // display 2 → data 4
     { label: 'Priority',  type: 'priority', readonly: true },                        // display 3 → data 5
-    { label: '',          type: 'empty' },                                           // display 4 → data 1
+    { label: 'Context',   type: 'dropdown', options: CTX_OPTS, dataIdx: 2 },        // display 4 → data 2 (override)
     { label: 'Date',      type: 'date' },                                            // display 5 → data 6
     { label: 'Time',      type: 'time' },                                            // display 6 → data 7
     { label: '$ in/out',  type: 'currency' },                                        // display 7 → data 3

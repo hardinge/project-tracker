@@ -509,7 +509,7 @@ export default function ProjectTracker() {
                   const def = defs[colIdx];
 
                   // Resolve display value — computed fields override stored
-                  const dataIdx = COL_ORDER[colIdx];
+                  const dataIdx = def.dataIdx ?? COL_ORDER[colIdx];
                   const displayVal =
                     def.type === 'currency_sum' ? (computedSums[row.id] ?? 0)
                     : def.type === 'available'  ? (computedAvailable[row.id] ?? '')
