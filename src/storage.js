@@ -2,7 +2,6 @@
 
 export const TYPES = ['Area', 'Goal', 'Project', 'Step', 'Action'];
 
-const REQ_OPTS     = ['', 'Must', 'Need', 'Want'];
 const IU_OPTS      = ['', '1', '2', '3', '4', '5'];
 const CTX_OPTS     = [
   '', 'phone', 'comp & call', 'quick comp', 'long comp',
@@ -17,7 +16,7 @@ const STATUS_OPTS  = ['Potential', 'Active', 'Deferred', 'Done', 'Cancelled'];
 
 // Data index reference (0-based, fixed — never reorder stored values):
 // 0  name
-// 1  requirement
+// 1  (unused)
 // 2  importance | context | empty
 // 3  $ total (computed) | $ in/out | empty
 // 4  week (ww-yy) | empty
@@ -33,7 +32,7 @@ const STATUS_OPTS  = ['Potential', 'Active', 'Deferred', 'Done', 'Cancelled'];
 // 14 id (readonly) | empty
 
 // Display column order: maps display position → data index
-// Display: name | importance | week | priority | requirement | date | time | $ total | link | sequence | routine | enablers | status | available | id
+// Display: name | importance | week | priority | (unused) | date | time | $ total | link | sequence | routine | enablers | status | available | id
 export const COL_ORDER = [0, 2, 4, 5, 1, 6, 7, 3, 8, 9, 10, 11, 12, 13, 14];
 
 export const COL_DEFS = {
@@ -59,7 +58,7 @@ export const COL_DEFS = {
     { label: '',            type: 'empty' },                                         // display 1 → data 2
     { label: 'Week',        type: 'week' },                                          // display 2 → data 4
     { label: 'Priority',    type: 'priority', readonly: true },                      // display 3 → data 5
-    { label: 'Requirement', type: 'dropdown', options: REQ_OPTS },                   // display 4 → data 1
+    { label: '',            type: 'empty' },                                         // display 4 → data 1
     { label: 'Date',        type: 'date' },                                          // display 5 → data 6
     { label: '',            type: 'empty' },                                         // display 6 → data 7
     { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 7 → data 3
@@ -76,7 +75,7 @@ export const COL_DEFS = {
     { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 1 → data 2
     { label: 'Week',        type: 'week' },                                          // display 2 → data 4
     { label: 'Priority',    type: 'priority', readonly: true },                      // display 3 → data 5
-    { label: 'Requirement', type: 'dropdown', options: REQ_OPTS },                   // display 4 → data 1
+    { label: '',            type: 'empty' },                                         // display 4 → data 1
     { label: 'Date',        type: 'date' },                                          // display 5 → data 6
     { label: '',            type: 'empty' },                                         // display 6 → data 7
     { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 7 → data 3
@@ -93,7 +92,7 @@ export const COL_DEFS = {
     { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 1 → data 2
     { label: 'Week',        type: 'week' },                                          // display 2 → data 4
     { label: 'Priority',    type: 'priority', readonly: true },                      // display 3 → data 5
-    { label: 'Requirement', type: 'dropdown', options: REQ_OPTS },                   // display 4 → data 1
+    { label: '',            type: 'empty' },                                         // display 4 → data 1
     { label: 'Date',        type: 'date' },                                          // display 5 → data 6
     { label: 'Time',        type: 'time' },                                          // display 6 → data 7
     { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 7 → data 3
@@ -389,7 +388,7 @@ export function computePriority(rows) {
  *   area:       string — '' or area row id
  *   types:      Set    — enabled types, subset of ['Goal','Project','Step','Action']
  *   nextAction: string — 'all' | 'nextActions'
- *   req:        Set    — enabled reqs, subset of ['Must','Need','Want']
+ *   priority:   Set    — enabled priority buckets, subset of ['X','0','1','2','3','4','5']
  *   iu:         string — '' | IU code (e.g. 'HH', 'MM')
  *   date:       string — '' | 'overdue' | 'today' | 'tomorrow' | 'thisWeek' | 'nextWeek' | 'thisMonth'
  *   search:     string — text search on row name
@@ -399,8 +398,17 @@ export function computePriority(rows) {
  * Ancestors of rows passing a filter are added for context, but only within the
  * current candidate set (so the Area filter cannot be bypassed).
  */
-export function computeVisible(rows, available, filters) {
-  const { area, types, nextAction, req, iu, date, search } = filters;
+export function computeVisible(rows, available, priorityMap, filters) {
+  const { area, types, nextAction, priority, iu, date, search } = filters;
+
+  function getPriorityBucket(priorityStr) {
+    if (!priorityStr) return 'X';
+    const n = parseFloat(priorityStr);
+    if (isNaN(n)) return 'X';
+    const b = Math.floor(n);
+    if (b >= 5) return '5';
+    return String(b);
+  }
 
   // Walk from idx upward, adding ancestor rows that exist in currentIndices.
   function addAncestors(idx, currentIndices, resultSet) {
@@ -455,27 +463,12 @@ export function computeVisible(rows, available, filters) {
     applyFilter((idx, row) => available[row.id] === 'Yes');
   }
 
-  // ── Filter 4: Requirement ─────────────────────────────────────────────────
-  const reqEnabled = req ?? new Set(['Must','Need','Want','']);
-  if (reqEnabled.size < 4) {
-    // Collect non-Action rows that pass req, then let Actions inherit from parent.
-    const passedNonAction = new Set();
-    for (const idx of indices) {
-      const row  = rows[idx];
-      const type = getType(row.depth);
-      if (type !== 'Area' && type !== 'Action' && reqEnabled.has(row.values[1])) {
-        passedNonAction.add(idx);
-      }
-    }
-    applyFilter((idx, row, type) => {
-      if (type === 'Action') {
-        // Pass if nearest parent is in passedNonAction.
-        for (let j = idx - 1; j >= 0; j--) {
-          if (rows[j].depth === row.depth - 1) return passedNonAction.has(j);
-        }
-        return false;
-      }
-      return reqEnabled.has(row.values[1]);
+  // ── Filter 4: Priority ────────────────────────────────────────────────────
+  const priorityEnabled = priority ?? new Set(['X','0','1','2','3','4','5']);
+  if (priorityEnabled.size < 7) {
+    applyFilter((idx, row) => {
+      const bucket = getPriorityBucket(priorityMap[row.id]);
+      return priorityEnabled.has(bucket);
     });
   }
 

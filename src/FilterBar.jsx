@@ -34,11 +34,14 @@ const TYPE_COLORS = {
   Step:    { active: '#063a2a', border: '#059669' },
   Action:  { active: '#3a2800', border: '#d97706' },
 };
-const REQ_COLORS = {
-  Must: { active: '#3a0a0a', border: '#ef4444' },
-  Need: { active: '#3a2600', border: '#f59e0b' },
-  Want: { active: '#0a1a3a', border: '#3b82f6' },
-  '':   { active: '#1a1a2e', border: '#64748b' },
+const PRIORITY_COLORS = {
+  X: { active: '#1a1a2e', border: '#64748b' },
+  0: { active: '#052e16', border: '#10b981' },
+  1: { active: '#0c1a3a', border: '#3b82f6' },
+  2: { active: '#1c1a00', border: '#eab308' },
+  3: { active: '#2a1500', border: '#f97316' },
+  4: { active: '#3a0a0a', border: '#ef4444' },
+  5: { active: '#1a0a1a', border: '#a855f7' },
 };
 
 function ToggleBtn({ active, onClick, color, border, children }) {
@@ -86,10 +89,10 @@ export default function FilterBar({ filters, onChange, rows }) {
     update('types', next);
   }
 
-  function toggleReq(r) {
-    const next = new Set(filters.req);
-    if (next.has(r)) next.delete(r); else next.add(r);
-    update('req', next);
+  function togglePriority(p) {
+    const next = new Set(filters.priority);
+    if (next.has(p)) next.delete(p); else next.add(p);
+    update('priority', next);
   }
 
   return (
@@ -150,18 +153,18 @@ export default function FilterBar({ filters, onChange, rows }) {
 
       <Divider />
 
-      {/* Requirement toggles */}
+      {/* Priority toggles */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <Label>Req</Label>
-        {['Must','Need','Want',''].map(r => (
+        <Label>Pri</Label>
+        {['X','0','1','2','3','4','5'].map(p => (
           <ToggleBtn
-            key={r || 'X'}
-            active={filters.req.has(r)}
-            onClick={() => toggleReq(r)}
-            color={REQ_COLORS[r].active}
-            border={REQ_COLORS[r].border}
+            key={p}
+            active={filters.priority.has(p)}
+            onClick={() => togglePriority(p)}
+            color={PRIORITY_COLORS[p].active}
+            border={PRIORITY_COLORS[p].border}
           >
-            {r === '' ? 'X' : r[0]}
+            {p}
           </ToggleBtn>
         ))}
       </div>
