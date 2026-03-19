@@ -166,7 +166,7 @@ export default function ProjectTracker() {
     area:       '',
     types:      new Set(['Goal','Project','Step','Action']),
     nextAction: 'all',
-    req:        new Set(['Must','Need','Want','']),
+    priority:   new Set(['X','0','1','2','3','4','5']),
     iu:         '',
     date:       '',
     search:     '',
@@ -206,8 +206,8 @@ export default function ProjectTracker() {
 
   // ── Visible rows (filtered) ──────────────────────────────────────────────
   const visible = useMemo(
-    () => computeVisible(rows ?? [], computedAvailable, filters),
-    [rows, computedAvailable, filters],
+    () => computeVisible(rows ?? [], computedAvailable, computedPriority, filters),
+    [rows, computedAvailable, computedPriority, filters],
   );
 
   // ── Visible index set (for $ sum) ─────────────────────────────────────────
