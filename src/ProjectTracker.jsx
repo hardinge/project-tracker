@@ -166,20 +166,58 @@ export default function ProjectTracker() {
   const inputRef     = useRef(null);
   const containerRef = useRef(null);
 
+  // Ref to the latest rows so the unmount cleanup can save them without stale closure
+  const pendingRowsRef = useRef(null);
+  const hasPendingSave = useRef(false);
+
   // Load rows from server on mount
   useEffect(() => {
-    loadRows().then(data => {
-      setRows(data ?? SEED_ROWS);
-      setDataReady(true);
-    });
+    let cancelled = false;
+    async function load(attempt = 0) {
+      try {
+        const data = await loadRows();
+        if (!cancelled) {
+          setRows(data ?? SEED_ROWS);
+          setDataReady(true);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          if (attempt < 3) {
+            setTimeout(() => load(attempt + 1), 1000 * (attempt + 1));
+          } else {
+            console.error('[tracker] failed to load rows after retries:', err);
+            setRows(SEED_ROWS);
+            setDataReady(true);
+          }
+        }
+      }
+    }
+    load();
+    return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Persist on every rows change (debounced 800ms, skips initial load)
+  // Persist on every rows change (debounced 800ms, skips initial load).
+  // Also tracks the latest rows so the unmount handler can flush them.
   useEffect(() => {
     if (!dataReady || rows === null) return;
-    const t = setTimeout(() => saveRows(rows), 800);
+    pendingRowsRef.current = rows;
+    hasPendingSave.current = true;
+    const t = setTimeout(() => {
+      saveRows(rows);
+      hasPendingSave.current = false;
+    }, 800);
     return () => clearTimeout(t);
   }, [rows, dataReady]);
+
+  // Flush any unsaved changes immediately when the component unmounts.
+  // This covers HMR hot-reloads, which cancel the debounced save above.
+  useEffect(() => {
+    return () => {
+      if (hasPendingSave.current && pendingRowsRef.current) {
+        saveRows(pendingRowsRef.current);
+      }
+    };
+  }, []);
 
   // ── Computed Available ────────────────────────────────────────────────────
   const computedAvailable = useMemo(() => computeAvailability(rows ?? []), [rows]);
