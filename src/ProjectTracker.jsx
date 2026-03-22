@@ -273,7 +273,7 @@ export default function ProjectTracker() {
     if (!isCtrl && !isShift) {
       if      (e.key === 'ArrowDown')  { e.preventDefault(); setSel({ r: Math.min(r + 1, numRows - 1), c }); }
       else if (e.key === 'ArrowUp')    { e.preventDefault(); setSel({ r: Math.max(r - 1, 0), c }); }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); setSel({ r, c: Math.min(c + 1, NUM_COLS - 1) }); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); setSel({ r, c: Math.min(c + 1, COL_ORDER.length - 1) }); }
       else if (e.key === 'ArrowLeft')  { e.preventDefault(); setSel({ r, c: Math.max(c - 1, 0) }); }
       else if (e.key === 'Enter')      { e.preventDefault(); setEditing(true); }
       return;
