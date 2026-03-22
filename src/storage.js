@@ -579,14 +579,10 @@ export async function logout() {
 }
 
 export async function loadRows() {
-  try {
-    const res = await fetch(`${API}/rows`);
-    if (!res.ok) return null;
-    const rows = await res.json();
-    return rows.length > 0 ? rows : null;
-  } catch {
-    return null;
-  }
+  const res = await fetch(`${API}/rows`);
+  if (!res.ok) throw new Error(`[storage] load failed: HTTP ${res.status}`);
+  const rows = await res.json();
+  return rows.length > 0 ? rows : null; // null = empty DB → caller should use seed
 }
 
 export async function saveRows(rows) {
