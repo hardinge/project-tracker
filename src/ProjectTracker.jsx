@@ -249,6 +249,18 @@ export default function ProjectTracker() {
     };
   }, []);
 
+  // Flush pending saves on page close/reload. useEffect cleanup does NOT run
+  // during a real page unload (only during HMR), so we need a pagehide listener.
+  useEffect(() => {
+    function flushOnPageHide() {
+      if (hasPendingSave.current && pendingRowsRef.current) {
+        saveRows(pendingRowsRef.current);
+      }
+    }
+    window.addEventListener('pagehide', flushOnPageHide);
+    return () => window.removeEventListener('pagehide', flushOnPageHide);
+  }, []);
+
   // ── Computed Available ────────────────────────────────────────────────────
   const computedAvailable = useMemo(() => computeAvailability(rows ?? []), [rows]);
 
