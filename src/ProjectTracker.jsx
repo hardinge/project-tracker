@@ -97,6 +97,12 @@ function CellDisplay({ val, def }) {
         borderRadius: '50%', background: '#4ade80', verticalAlign: 'middle',
       }} />
     );
+    if (val === 'Potential') return (
+      <span style={{
+        display: 'inline-block', width: '0.75em', height: '0.75em',
+        borderRadius: '50%', background: '#f97316', verticalAlign: 'middle',
+      }} />
+    );
     if (val === 'No') return (
       <span style={{
         display: 'inline-block', width: '0.75em', height: '0.75em',

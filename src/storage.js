@@ -228,19 +228,22 @@ export function recomputeStructure(rows) {
 // ─── Availability computation ─────────────────────────────────────────────────
 
 /**
- * Compute the Available field for every row. Returns a map: rowId → 'Yes' | 'No' | ''.
+ * Compute the Available field for every row. Returns a map: rowId → 'Yes' | 'Potential' | 'No' | ''.
  *
- * A non-Area row is Available when ALL of the following hold:
+ * A non-Area row is Available ('Yes') when ALL of the following hold:
  *  1. Its own Status is 'Active'.
  *  2. Every ID listed in its Enablers (index 9) has Status 'Completed' or 'Cancelled'.
  *  3. (Steps only) If the parent Project/Step has Type 'sequential':
  *       this row must be the first direct child Step whose Status is not Completed/Cancelled.
  *  4. (Actions only) The nearest parent row (Step or Project) must itself be Available.
  *
+ * A row is 'Potential' when it would otherwise be Available but is blocked by a row whose
+ * own Status is 'Potential' (own status, a sequential predecessor, or an ancestor).
+ *
  * Rows are processed top-to-bottom, so parent availability is always resolved first.
  */
 export function computeAvailability(rows) {
-  const result   = {};   // rowId → '' | 'Yes' | 'No'
+  const result   = {};   // rowId → '' | 'Yes' | 'Potential' | 'No'
   const statusOf = {};   // rowId → status string
 
   rows.forEach(row => { statusOf[row.id] = row.values[12]; });
@@ -250,7 +253,8 @@ export function computeAvailability(rows) {
 
     if (type === 'Area') { result[row.id] = ''; return; }
 
-    // Rule 1 — own Status must be Active
+    // Rule 1 — own Status must be Active (Potential status yields Potential availability)
+    if (statusOf[row.id] === 'Potential') { result[row.id] = 'Potential'; return; }
     if (statusOf[row.id] !== 'Active') { result[row.id] = 'No'; return; }
 
     // Rule 2 — all Enablers must be Completed or Cancelled
@@ -286,7 +290,11 @@ export function computeAvailability(rows) {
                 }
               }
             }
-            if (firstId !== row.id) { result[row.id] = 'No'; return; }
+            if (firstId !== row.id) {
+              // Propagate Potential if the blocking predecessor is itself Potential
+              result[row.id] = result[firstId] === 'Potential' ? 'Potential' : 'No';
+              return;
+            }
           }
         }
       }
@@ -299,7 +307,9 @@ export function computeAvailability(rows) {
         if (rows[j].depth === row.depth - 1) { parentIdx = j; break; }
       }
       if (parentIdx >= 0 && result[rows[parentIdx].id] !== 'Yes') {
-        result[row.id] = 'No'; return;
+        // Propagate Potential if the parent is Potential
+        result[row.id] = result[rows[parentIdx].id] === 'Potential' ? 'Potential' : 'No';
+        return;
       }
     }
 
