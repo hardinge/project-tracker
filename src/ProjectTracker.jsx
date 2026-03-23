@@ -21,11 +21,13 @@ const STATUS_STYLE = {
 
 function CellDisplay({ val, def }) {
   if (def.type === 'empty') return null;
-  if (val === '' || val == null) return <span style={{ color: '#3a4060' }}>—</span>;
+  if (val === '' || val == null) {
+    return def.readonly ? null : <span style={{ color: '#3a4060' }}>—</span>;
+  }
 
   if (def.type === 'currency_sum') {
     const n = typeof val === 'number' ? val : parseFloat(val);
-    if (isNaN(n) || n === 0) return <span style={{ color: '#3a4060' }}>—</span>;
+    if (isNaN(n) || n === 0) return null;
     return (
       <span style={{
         color: n > 0 ? '#10b981' : '#ef4444',
@@ -83,7 +85,7 @@ function CellDisplay({ val, def }) {
   if (def.type === 'available') {
     if (val === 'Yes') return <span style={{ color: '#4ade80', fontWeight: 700 }}>Available</span>;
     if (val === 'No')  return <span style={{ color: '#3a4060' }}>not a</span>;
-    return <span style={{ color: '#3a4060' }}>—</span>;
+    return null;
   }
 
   if (def.type === 'dropdown') {
