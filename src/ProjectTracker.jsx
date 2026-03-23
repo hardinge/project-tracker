@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  COL_DEFS, COL_ORDER, COL_WIDTHS, INDENT_PX, NUM_COLS, TYPE_BADGE_COLOR,
+  COL_DEFS, COL_HEADERS, COL_ORDER, COL_WIDTHS, INDENT_PX, NUM_COLS, TYPE_BADGE_COLOR,
   getType, makeRow, recomputeStructure, subtreeRange,
   computeAvailability, computePriority, computeVisible,
   getCurrentWeek, loadRows, saveRows, SEED_ROWS,
@@ -437,10 +437,8 @@ export default function ProjectTracker() {
     return () => el.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // ── Derived header (based on selected row type) ──────────────────────────
-  const selRow     = visible[sel.r];
-  const selType    = selRow ? getType(selRow.row.depth) : 'Area';
-  const headerDefs = COL_DEFS[selType];
+  const selRow  = visible[sel.r];
+  const selType = selRow ? getType(selRow.row.depth) : 'Area';
 
   if (!dataReady) {
     return (
@@ -500,7 +498,7 @@ export default function ProjectTracker() {
       {/* ── Filter bar ── */}
       <FilterBar filters={filters} onChange={setFilters} rows={rows} />
 
-      {/* ── Column headers — dynamic per selected type ── */}
+      {/* ── Column headers — permanent ── */}
       <div style={{ display: 'flex', background: '#1a1d2e', borderBottom: '2px solid #2d3149', flexShrink: 0 }}>
         {COL_WIDTHS.map((w, i) => (
           <div key={i} style={{
@@ -509,7 +507,7 @@ export default function ProjectTracker() {
             textTransform: 'uppercase', letterSpacing: '0.8px',
             borderRight: '1px solid #2d3149', boxSizing: 'border-box', overflow: 'hidden',
           }}>
-            {headerDefs[i]?.label || ''}
+            {COL_HEADERS[i]}
           </div>
         ))}
       </div>
