@@ -493,7 +493,7 @@ export function computeVisible(rows, available, priorityMap, filters) {
 
   // ── Filter 3: Next Actions ────────────────────────────────────────────────
   if (nextAction === 'nextActions') {
-    applyFilter((idx, row) => available[row.id] === 'Yes');
+    applyFilter((idx, row, type) => (type === 'Step' || type === 'Action') && available[row.id] === 'Yes');
   }
 
   // ── Filter 4: Priority ────────────────────────────────────────────────────
