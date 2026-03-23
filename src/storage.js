@@ -12,7 +12,7 @@ const CTX_OPTS     = [
 const TYPE_OPTS    = ['sequential', 'parallel'];
 const ROUTINE_OPTS = ['not r', 'routine'];
 const EVENT_OPTS   = ['not e', 'event'];
-const STATUS_OPTS  = ['Potential', 'Active', 'Deferred', 'Done', 'Cancelled'];
+const STATUS_OPTS  = ['Potential', 'Active', 'Deferred', 'Completed', 'Cancelled'];
 
 // Data index reference (0-based, fixed — never reorder stored values):
 // 0  name
@@ -32,93 +32,93 @@ const STATUS_OPTS  = ['Potential', 'Active', 'Deferred', 'Done', 'Cancelled'];
 // 14 id (readonly) | empty
 
 // Display column order: maps display position → data index
-// Display: name | week | priority | importance | context | date | time | $ total | link | sequence | routine | enablers | status | available | id
-export const COL_ORDER = [0, 4, 5, 2, 2, 6, 7, 3, 8, 9, 10, 11, 12, 13, 14];
+// Display: name | status | available | week | priority | importance | context | date | time | $ total | link | sequence | routine | enablers | id
+export const COL_ORDER = [0, 12, 13, 4, 5, 2, 2, 6, 7, 3, 8, 9, 10, 11, 14];
 
 export const COL_DEFS = {
   Area: [
     { label: 'Area',      type: 'text' },  // display 0 → data 0
-    { label: '',          type: 'empty' }, // display 1 → data 4
-    { label: '',          type: 'empty' }, // display 2 → data 5
-    { label: '',          type: 'empty' }, // display 3 → data 2
-    { label: '',          type: 'empty' }, // display 4 → data 2 (context col)
-    { label: '',          type: 'empty' }, // display 5 → data 6
-    { label: '',          type: 'empty' }, // display 6 → data 7
-    { label: '',          type: 'empty' }, // display 7 → data 3
-    { label: '',          type: 'empty' }, // display 8 → data 8
-    { label: '',          type: 'empty' }, // display 9 → data 9
-    { label: '',          type: 'empty' }, // display 10 → data 10
-    { label: '',          type: 'empty' }, // display 11 → data 11
-    { label: '',          type: 'empty' }, // display 12 → data 12
-    { label: '',          type: 'empty' }, // display 13 → data 13
+    { label: '',          type: 'empty' }, // display 1 → data 12
+    { label: '',          type: 'empty' }, // display 2 → data 13
+    { label: '',          type: 'empty' }, // display 3 → data 4
+    { label: '',          type: 'empty' }, // display 4 → data 5
+    { label: '',          type: 'empty' }, // display 5 → data 2
+    { label: '',          type: 'empty' }, // display 6 → data 2 (context col)
+    { label: '',          type: 'empty' }, // display 7 → data 6
+    { label: '',          type: 'empty' }, // display 8 → data 7
+    { label: '',          type: 'empty' }, // display 9 → data 3
+    { label: '',          type: 'empty' }, // display 10 → data 8
+    { label: '',          type: 'empty' }, // display 11 → data 9
+    { label: '',          type: 'empty' }, // display 12 → data 10
+    { label: '',          type: 'empty' }, // display 13 → data 11
     { label: '',          type: 'empty' }, // display 14 → data 14
   ],
   Goal: [
     { label: 'Goal',        type: 'text' },                                          // display 0 → data 0
-    { label: 'Week',        type: 'week' },                                          // display 1 → data 4
-    { label: 'Priority',    type: 'priority', readonly: true },                      // display 2 → data 5
-    { label: '',            type: 'empty' },                                         // display 3 → data 2
-    { label: '',            type: 'empty' },                                         // display 4 → data 2 (context col)
-    { label: 'Date',        type: 'date' },                                          // display 5 → data 6
-    { label: '',            type: 'empty' },                                         // display 6 → data 7
-    { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 7 → data 3
-    { label: 'Link',        type: 'url' },                                           // display 8 → data 8
-    { label: 'Sequence',    type: 'dropdown', options: TYPE_OPTS, default: 'sequential' }, // display 9 → data 9
-    { label: '',            type: 'empty' },                                         // display 10 → data 10
-    { label: 'Enablers',    type: 'text' },                                          // display 11 → data 11
-    { label: 'Status',      type: 'status', options: STATUS_OPTS, default: 'Active' }, // display 12 → data 12
-    { label: 'Availability', type: 'available', readonly: true },                    // display 13 → data 13
+    { label: 'Status',      type: 'status', options: STATUS_OPTS, default: 'Active' }, // display 1 → data 12
+    { label: 'Availability', type: 'available', readonly: true },                    // display 2 → data 13
+    { label: 'Week',        type: 'week' },                                          // display 3 → data 4
+    { label: 'Priority',    type: 'priority', readonly: true },                      // display 4 → data 5
+    { label: '',            type: 'empty' },                                         // display 5 → data 2
+    { label: '',            type: 'empty' },                                         // display 6 → data 2 (context col)
+    { label: 'Date',        type: 'date' },                                          // display 7 → data 6
+    { label: '',            type: 'empty' },                                         // display 8 → data 7
+    { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 9 → data 3
+    { label: 'Link',        type: 'url' },                                           // display 10 → data 8
+    { label: 'Sequence',    type: 'dropdown', options: TYPE_OPTS, default: 'sequential' }, // display 11 → data 9
+    { label: '',            type: 'empty' },                                         // display 12 → data 10
+    { label: 'Enablers',    type: 'text' },                                          // display 13 → data 11
     { label: 'ID',          type: 'id', readonly: true },                            // display 14 → data 14
   ],
   Project: [
     { label: 'Project',     type: 'text' },                                          // display 0 → data 0
-    { label: 'Week',        type: 'week' },                                          // display 1 → data 4
-    { label: 'Priority',    type: 'priority', readonly: true },                      // display 2 → data 5
-    { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 3 → data 2
-    { label: '',            type: 'empty' },                                         // display 4 → data 2 (context col)
-    { label: 'Date',        type: 'date' },                                          // display 5 → data 6
-    { label: '',            type: 'empty' },                                         // display 6 → data 7
-    { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 7 → data 3
-    { label: 'Link',        type: 'url' },                                           // display 8 → data 8
-    { label: 'Sequence',    type: 'dropdown', options: TYPE_OPTS, default: 'sequential' }, // display 9 → data 9
-    { label: '',            type: 'empty' },                                         // display 10 → data 10
-    { label: 'Enablers',    type: 'text' },                                          // display 11 → data 11
-    { label: 'Status',      type: 'status', options: STATUS_OPTS, default: 'Active' }, // display 12 → data 12
-    { label: 'Availability', type: 'available', readonly: true },                    // display 13 → data 13
+    { label: 'Status',      type: 'status', options: STATUS_OPTS, default: 'Active' }, // display 1 → data 12
+    { label: 'Availability', type: 'available', readonly: true },                    // display 2 → data 13
+    { label: 'Week',        type: 'week' },                                          // display 3 → data 4
+    { label: 'Priority',    type: 'priority', readonly: true },                      // display 4 → data 5
+    { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 5 → data 2
+    { label: '',            type: 'empty' },                                         // display 6 → data 2 (context col)
+    { label: 'Date',        type: 'date' },                                          // display 7 → data 6
+    { label: '',            type: 'empty' },                                         // display 8 → data 7
+    { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 9 → data 3
+    { label: 'Link',        type: 'url' },                                           // display 10 → data 8
+    { label: 'Sequence',    type: 'dropdown', options: TYPE_OPTS, default: 'sequential' }, // display 11 → data 9
+    { label: '',            type: 'empty' },                                         // display 12 → data 10
+    { label: 'Enablers',    type: 'text' },                                          // display 13 → data 11
     { label: 'ID',          type: 'id', readonly: true },                            // display 14 → data 14
   ],
   Step: [
     { label: 'Step',        type: 'text' },                                          // display 0 → data 0
-    { label: 'Week',        type: 'week' },                                          // display 1 → data 4
-    { label: 'Priority',    type: 'priority', readonly: true },                      // display 2 → data 5
-    { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 3 → data 2
-    { label: '',            type: 'empty' },                                         // display 4 → data 2 (context col)
-    { label: 'Date',        type: 'date' },                                          // display 5 → data 6
-    { label: 'Time',        type: 'time' },                                          // display 6 → data 7
-    { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 7 → data 3
-    { label: 'Link',        type: 'url' },                                           // display 8 → data 8
-    { label: 'Sequence',    type: 'dropdown', options: TYPE_OPTS, default: 'sequential' }, // display 9 → data 9
-    { label: 'Routine',     type: 'dropdown', options: ROUTINE_OPTS, default: 'not r' }, // display 10 → data 10
-    { label: 'Enablers',    type: 'text' },                                          // display 11 → data 11
-    { label: 'Status',      type: 'status', options: STATUS_OPTS, default: 'Active' }, // display 12 → data 12
-    { label: 'Availability', type: 'available', readonly: true },                    // display 13 → data 13
+    { label: 'Status',      type: 'status', options: STATUS_OPTS, default: 'Active' }, // display 1 → data 12
+    { label: 'Availability', type: 'available', readonly: true },                    // display 2 → data 13
+    { label: 'Week',        type: 'week' },                                          // display 3 → data 4
+    { label: 'Priority',    type: 'priority', readonly: true },                      // display 4 → data 5
+    { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 5 → data 2
+    { label: '',            type: 'empty' },                                         // display 6 → data 2 (context col)
+    { label: 'Date',        type: 'date' },                                          // display 7 → data 6
+    { label: 'Time',        type: 'time' },                                          // display 8 → data 7
+    { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 9 → data 3
+    { label: 'Link',        type: 'url' },                                           // display 10 → data 8
+    { label: 'Sequence',    type: 'dropdown', options: TYPE_OPTS, default: 'sequential' }, // display 11 → data 9
+    { label: 'Routine',     type: 'dropdown', options: ROUTINE_OPTS, default: 'not r' }, // display 12 → data 10
+    { label: 'Enablers',    type: 'text' },                                          // display 13 → data 11
     { label: 'ID',          type: 'id', readonly: true },                            // display 14 → data 14
   ],
   Action: [
     { label: 'Action',    type: 'text' },                                            // display 0 → data 0
-    { label: '',          type: 'empty' },                                           // display 1 → data 4
-    { label: 'Priority',  type: 'priority', readonly: true },                        // display 2 → data 5
-    { label: '',          type: 'empty' },                                           // display 3 → data 2 (importance col, n/a for actions)
-    { label: 'Context',   type: 'dropdown', options: CTX_OPTS },                     // display 4 → data 2
-    { label: 'Date',      type: 'date' },                                            // display 5 → data 6
-    { label: 'Time',      type: 'time' },                                            // display 6 → data 7
-    { label: '$ in/out',  type: 'currency' },                                        // display 7 → data 3
-    { label: 'Link',      type: 'url' },                                             // display 8 → data 8
-    { label: '',          type: 'empty' },                                           // display 9 → data 9
-    { label: 'Event',     type: 'dropdown', options: EVENT_OPTS, default: 'not e' }, // display 10 → data 10
-    { label: '',          type: 'empty' },                                           // display 11 → data 11
-    { label: 'Status',    type: 'status', options: STATUS_OPTS, default: 'Active' }, // display 12 → data 12
-    { label: 'Available', type: 'available', readonly: true },                       // display 13 → data 13
+    { label: 'Status',    type: 'status', options: STATUS_OPTS, default: 'Active' }, // display 1 → data 12
+    { label: 'Available', type: 'available', readonly: true },                       // display 2 → data 13
+    { label: '',          type: 'empty' },                                           // display 3 → data 4
+    { label: 'Priority',  type: 'priority', readonly: true },                        // display 4 → data 5
+    { label: '',          type: 'empty' },                                           // display 5 → data 2 (importance col, n/a for actions)
+    { label: 'Context',   type: 'dropdown', options: CTX_OPTS },                     // display 6 → data 2
+    { label: 'Date',      type: 'date' },                                            // display 7 → data 6
+    { label: 'Time',      type: 'time' },                                            // display 8 → data 7
+    { label: '$ in/out',  type: 'currency' },                                        // display 9 → data 3
+    { label: 'Link',      type: 'url' },                                             // display 10 → data 8
+    { label: '',          type: 'empty' },                                           // display 11 → data 9
+    { label: 'Event',     type: 'dropdown', options: EVENT_OPTS, default: 'not e' }, // display 12 → data 10
+    { label: '',          type: 'empty' },                                           // display 13 → data 11
     { label: '',          type: 'empty' },                                           // display 14 → data 14
   ],
 };
@@ -126,23 +126,23 @@ export const COL_DEFS = {
 // Permanent column headers — fixed regardless of selected row type
 export const COL_HEADERS = [
   'Name',       // display 0  → data 0
-  'Week',       // display 1  → data 4
-  'Priority',   // display 2  → data 5
-  'Importance', // display 3  → data 2
-  'Context',    // display 4  → data 2
-  'Date',       // display 5  → data 6
-  'Time',       // display 6  → data 7
-  '$',          // display 7  → data 3
-  'Link',       // display 8  → data 8
-  'Sequence',   // display 9  → data 9
-  'Ro / Ev',    // display 10 → data 10
-  'Enablers',   // display 11 → data 11
-  'Status',     // display 12 → data 12
-  'Available',  // display 13 → data 13
+  'Status',     // display 1  → data 12
+  'Available',  // display 2  → data 13
+  'Week',       // display 3  → data 4
+  'Priority',   // display 4  → data 5
+  'Importance', // display 5  → data 2
+  'Context',    // display 6  → data 2
+  'Date',       // display 7  → data 6
+  'Time',       // display 8  → data 7
+  '$',          // display 9  → data 3
+  'Link',       // display 10 → data 8
+  'Sequence',   // display 11 → data 9
+  'Ro / Ev',    // display 12 → data 10
+  'Enablers',   // display 13 → data 11
   'ID',         // display 14 → data 14
 ];
 
-export const COL_WIDTHS = [345, 65, 75, 95, 95, 100, 65, 85, 60, 90, 75, 100, 90, 70, 70];
+export const COL_WIDTHS = [345, 90, 70, 65, 75, 95, 95, 100, 65, 85, 60, 90, 75, 100, 70];
 export const INDENT_PX  = 20;
 export const NUM_COLS   = 15;
 
@@ -228,9 +228,9 @@ export function recomputeStructure(rows) {
  *
  * A non-Area row is Available when ALL of the following hold:
  *  1. Its own Status is 'Active'.
- *  2. Every ID listed in its Enablers (index 9) has Status 'Done' or 'Cancelled'.
+ *  2. Every ID listed in its Enablers (index 9) has Status 'Completed' or 'Cancelled'.
  *  3. (Steps only) If the parent Project/Step has Type 'sequential':
- *       this row must be the first direct child Step whose Status is not Done/Cancelled.
+ *       this row must be the first direct child Step whose Status is not Completed/Cancelled.
  *  4. (Actions only) The nearest parent row (Step or Project) must itself be Available.
  *
  * Rows are processed top-to-bottom, so parent availability is always resolved first.
@@ -249,11 +249,11 @@ export function computeAvailability(rows) {
     // Rule 1 — own Status must be Active
     if (statusOf[row.id] !== 'Active') { result[row.id] = 'No'; return; }
 
-    // Rule 2 — all Enablers must be Done or Cancelled
+    // Rule 2 — all Enablers must be Completed or Cancelled
     const enablersRaw = (row.values[11] || '').trim();
     if (enablersRaw) {
       const ids = enablersRaw.split(',').map(s => s.trim()).filter(Boolean);
-      if (ids.some(id => statusOf[id] !== 'Done' && statusOf[id] !== 'Cancelled')) {
+      if (ids.some(id => statusOf[id] !== 'Completed' && statusOf[id] !== 'Cancelled')) {
         result[row.id] = 'No'; return;
       }
     }
@@ -277,7 +277,7 @@ export function computeAvailability(rows) {
             let firstId = null;
             for (let j = parentIdx + 1; j < pe; j++) {
               if (rows[j].depth === row.depth) {
-                if (statusOf[rows[j].id] !== 'Done' && statusOf[rows[j].id] !== 'Cancelled') {
+                if (statusOf[rows[j].id] !== 'Completed' && statusOf[rows[j].id] !== 'Cancelled') {
                   firstId = rows[j].id; break;
                 }
               }

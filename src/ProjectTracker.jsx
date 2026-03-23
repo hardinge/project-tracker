@@ -11,11 +11,19 @@ import FilterBar from './FilterBar.jsx';
 
 const IMP_COLOR = { '1': '#10b981', '2': '#3b82f6', '3': '#eab308', '4': '#ef4444', '5': '#111827' };
 
+const STATUS_LABEL = {
+  Potential: 'P',
+  Active:    'A',
+  Deferred:  'S',
+  Completed: 'D',
+  Cancelled: 'C',
+};
+
 const STATUS_STYLE = {
-  Potential: { background: '#1e293b', color: '#94a3b8' },
+  Potential: { background: '#713f12', color: '#fef08a' },
   Active:    { background: '#052e16', color: '#4ade80' },
   Deferred:  { background: '#431407', color: '#fb923c' },
-  Done:      { background: '#0c1a3a', color: '#60a5fa' },
+  Completed: { background: '#0c1a3a', color: '#60a5fa' },
   Cancelled: { background: '#1c0a0a', color: '#f87171' },
 };
 
@@ -76,8 +84,8 @@ function CellDisplay({ val, def }) {
     const s = STATUS_STYLE[val];
     if (!s) return <span>{val}</span>;
     return (
-      <span style={{ ...s, borderRadius: 3, padding: '1px 7px', fontWeight: 600 }}>
-        {val}
+      <span style={{ ...s, borderRadius: 3, padding: '1px 7px', fontWeight: 700, fontFamily: 'monospace' }}>
+        {STATUS_LABEL[val] ?? val}
       </span>
     );
   }
