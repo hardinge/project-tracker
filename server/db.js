@@ -22,4 +22,14 @@ db.exec(`
   )
 `);
 
+// Migrate status values: Completed → Done, Deferred → Someday
+db.exec(`
+  UPDATE rows SET values_json = json_replace(values_json, '$[12]', 'Done')
+  WHERE json_extract(values_json, '$[12]') = 'Completed'
+`);
+db.exec(`
+  UPDATE rows SET values_json = json_replace(values_json, '$[12]', 'Someday')
+  WHERE json_extract(values_json, '$[12]') = 'Deferred'
+`);
+
 export default db;
