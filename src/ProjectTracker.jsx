@@ -198,8 +198,18 @@ export default function ProjectTracker() {
   const pendingRowsRef = useRef(null);
   const hasPendingSave = useRef(false);
 
-  // Load rows from server on mount
+  // Load rows from server on mount.
+  // If rows are already in memory (React Fast Refresh preserved state across an
+  // HMR update), skip the server round-trip — reloading would overwrite any
+  // unsaved in-memory changes with whatever the server last persisted.
   useEffect(() => {
+    if (rows !== null) {
+      // HMR hot-reload: state was preserved, no need to reload from server.
+      setServerOk(true);
+      setDataReady(true);
+      return;
+    }
+
     let cancelled = false;
     async function load(attempt = 0) {
       try {
