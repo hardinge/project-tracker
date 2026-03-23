@@ -28,8 +28,8 @@ const upsertRow = db.prepare(`
 
 router.put('/', (req, res) => {
   const rows = req.body;
-  db.exec('BEGIN TRANSACTION');
   try {
+    db.exec('BEGIN TRANSACTION');
     if (rows.length > 0) {
       const placeholders = rows.map(() => '?').join(',');
       db.prepare(`DELETE FROM rows WHERE id NOT IN (${placeholders})`)
@@ -50,7 +50,7 @@ router.put('/', (req, res) => {
     db.exec('COMMIT');
     res.json({ ok: true });
   } catch (err) {
-    db.exec('ROLLBACK');
+    try { db.exec('ROLLBACK'); } catch {}
     console.error('[rows] save error:', err);
     res.status(500).json({ error: 'Save failed' });
   }
