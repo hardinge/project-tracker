@@ -1,13 +1,10 @@
 import { DatabaseSync } from 'node:sqlite';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import { mkdirSync } from 'fs';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const dataDir = join(__dirname, '../data');
+const dataDir = '/data';
 mkdirSync(dataDir, { recursive: true });
 
-const db = new DatabaseSync(join(dataDir, 'tracker.db'));
+const db = new DatabaseSync(`${dataDir}/tracker.db`);
 
 db.exec('PRAGMA journal_mode = WAL');
 
