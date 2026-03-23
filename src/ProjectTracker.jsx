@@ -20,6 +20,7 @@ const STATUS_STYLE = {
 };
 
 function CellDisplay({ val, def }) {
+  if (def.type === 'empty') return null;
   if (val === '' || val == null) return <span style={{ color: '#3a4060' }}>—</span>;
 
   if (def.type === 'currency_sum') {
@@ -556,7 +557,7 @@ export default function ProjectTracker() {
                     : row.values[dataIdx];
 
                   const isSelCell  = isSelRow && sel.c === colIdx;
-                  const isEditCell = isSelCell && editing && !def.readonly;
+                  const isEditCell = isSelCell && editing && !def.readonly && def.type !== 'empty';
 
                   return (
                     <div
