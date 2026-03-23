@@ -602,23 +602,28 @@ export async function logout() {
   await fetch(`${API}/auth/logout`, { method: 'POST' });
 }
 
+// Module-level promise that tracks the latest in-flight save.
+// loadRows() awaits it so a hot-reload load can never race ahead of a flush.
+let _saveFlight = Promise.resolve();
+
 export async function loadRows() {
+  await _saveFlight; // wait for any in-flight save to finish first
   const res = await fetch(`${API}/rows`);
   if (!res.ok) throw new Error(`[storage] load failed: HTTP ${res.status}`);
   const rows = await res.json();
   return rows.length > 0 ? rows : null; // null = empty DB → caller should use seed
 }
 
-export async function saveRows(rows) {
-  try {
-    const res = await fetch(`${API}/rows`, {
+export function saveRows(rows) {
+  _saveFlight = _saveFlight.then(() =>
+    fetch(`${API}/rows`, {
       method: 'PUT',
+      keepalive: true,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(rows),
-    });
-    if (!res.ok) console.warn('[storage] save returned', res.status);
-  } catch (err) {
-    // TODO: queue write for offline sync replay
-    console.warn('[storage] save failed — data may be out of sync:', err);
-  }
+    })
+    .then(res => { if (!res.ok) console.warn('[storage] save returned', res.status); })
+    .catch(err => { console.warn('[storage] save failed — data may be out of sync:', err); })
+  );
+  return _saveFlight;
 }
