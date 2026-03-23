@@ -590,15 +590,17 @@ export async function loadRows() {
   return rows.length > 0 ? rows : null; // null = empty DB → caller should use seed
 }
 
-export async function saveRows(rows) {
+export async function saveRows(rows, signal = undefined) {
   try {
     const res = await fetch(`${API}/rows`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(rows),
+      signal,
     });
     if (!res.ok) console.warn('[storage] save returned', res.status);
   } catch (err) {
+    if (err.name === 'AbortError') return; // superseded by a newer save — safe to ignore
     // TODO: queue write for offline sync replay
     console.warn('[storage] save failed — data may be out of sync:', err);
   }

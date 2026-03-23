@@ -170,6 +170,9 @@ export default function ProjectTracker() {
   // Ref to the latest rows so the unmount cleanup can save them without stale closure
   const pendingRowsRef = useRef(null);
   const hasPendingSave = useRef(false);
+  // AbortController for the currently in-flight save — cancelled before each new save
+  // so that a stale (older-state) response can never overwrite newer data.
+  const saveAbortRef = useRef(null);
 
   // Load rows from server on mount
   useEffect(() => {
@@ -204,8 +207,14 @@ export default function ProjectTracker() {
     pendingRowsRef.current = rows;
     hasPendingSave.current = true;
     const t = setTimeout(() => {
-      saveRows(rows);
-      hasPendingSave.current = false;
+      // Abort any previous in-flight save so a stale response cannot overwrite
+      // the latest state (race condition: slow save A arriving after fast save B).
+      saveAbortRef.current?.abort();
+      const controller = new AbortController();
+      saveAbortRef.current = controller;
+      saveRows(rows, controller.signal).finally(() => {
+        hasPendingSave.current = false;
+      });
     }, 800);
     return () => clearTimeout(t);
   }, [rows, dataReady]);
@@ -214,8 +223,10 @@ export default function ProjectTracker() {
   // This covers HMR hot-reloads, which cancel the debounced save above.
   useEffect(() => {
     return () => {
+      // Abort in-flight save (if any) — the flush below will send the definitive state.
+      saveAbortRef.current?.abort();
       if (hasPendingSave.current && pendingRowsRef.current) {
-        saveRows(pendingRowsRef.current);
+        saveRows(pendingRowsRef.current); // no signal — must complete
       }
     };
   }, []);
