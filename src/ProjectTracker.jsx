@@ -51,6 +51,24 @@ function CellDisplay({ val, def }) {
   }
 
   if (def.type === 'week') {
+    const m = val.match(/^(\d{1,2})-(\d{2})$/);
+    if (m) {
+      const { week: currentWeek, year: currentYear } = getCurrentWeek();
+      const targetWeek = parseInt(m[1], 10);
+      const targetYear = 2000 + parseInt(m[2], 10);
+      const diff = (targetYear - currentYear) * 52 + (targetWeek - currentWeek);
+      const bg = diff <= 0 ? '#10b981'
+               : diff === 1 ? '#3b82f6'
+               : diff === 2 ? '#eab308'
+               : diff === 3 ? '#f97316'
+               : diff === 4 ? '#ef4444'
+               :               '#111827';
+      return (
+        <span style={{ background: bg, color: '#fff', borderRadius: 3, padding: '1px 7px', fontWeight: 700, fontFamily: 'monospace' }}>
+          {val}
+        </span>
+      );
+    }
     return <span style={{ fontFamily: 'monospace', color: '#7dd3fc' }}>{val}</span>;
   }
 

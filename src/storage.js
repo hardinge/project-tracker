@@ -142,7 +142,7 @@ export const COL_HEADERS = [
   'ID',         // display 14 → data 14
 ];
 
-export const COL_WIDTHS = [345, 40, 40, 75, 65, 95, 95, 100, 65, 85, 60, 90, 75, 100, 70];
+export const COL_WIDTHS = [345, 40, 40, 65, 65, 65, 95, 100, 65, 85, 60, 90, 75, 100, 70];
 export const INDENT_PX  = 20;
 export const NUM_COLS   = 15;
 
