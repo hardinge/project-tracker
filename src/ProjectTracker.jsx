@@ -55,13 +55,12 @@ function CellDisplay({ val, def }) {
   }
 
   if (def.type === 'priority') {
-    const y = parseInt(val.split('.')[1], 10);
-    const bg = y === 0 ? '#10b981'
-             : y === 1 ? '#3b82f6'
-             : y === 2 ? '#eab308'
-             : y === 3 ? '#f97316'
-             : y === 4 ? '#ef4444'
-             :            '#111827';
+    const x = parseInt(val.split('.')[0], 10);
+    const bg = x === 0 ? '#10b981'
+             : x === 1 ? '#3b82f6'
+             : x === 2 ? '#eab308'
+             : x === 3 ? '#f97316'
+             :            '#ef4444';
     return (
       <span style={{ background: bg, color: '#fff', borderRadius: 3, padding: '1px 7px', fontWeight: 700 }}>
         {val}
