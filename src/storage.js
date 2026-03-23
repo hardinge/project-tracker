@@ -123,6 +123,25 @@ export const COL_DEFS = {
   ],
 };
 
+// Permanent column headers — fixed regardless of selected row type
+export const COL_HEADERS = [
+  'Name',       // display 0  → data 0
+  'Week',       // display 1  → data 4
+  'Priority',   // display 2  → data 5
+  'Importance', // display 3  → data 2
+  'Context',    // display 4  → data 2
+  'Date',       // display 5  → data 6
+  'Time',       // display 6  → data 7
+  '$',          // display 7  → data 3
+  'Link',       // display 8  → data 8
+  'Sequence',   // display 9  → data 9
+  'Ro / Ev',    // display 10 → data 10
+  'Enablers',   // display 11 → data 11
+  'Status',     // display 12 → data 12
+  'Available',  // display 13 → data 13
+  'ID',         // display 14 → data 14
+];
+
 export const COL_WIDTHS = [345, 65, 75, 95, 95, 100, 65, 85, 60, 90, 75, 100, 90, 70, 70];
 export const INDENT_PX  = 20;
 export const NUM_COLS   = 15;
