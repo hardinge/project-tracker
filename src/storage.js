@@ -12,7 +12,7 @@ const CTX_OPTS     = [
 const TYPE_OPTS    = ['sequential', 'parallel'];
 const ROUTINE_OPTS = ['not r', 'routine'];
 const EVENT_OPTS   = ['not e', 'event'];
-const STATUS_OPTS  = ['Potential', 'Active', 'Deferred', 'Completed', 'Cancelled'];
+const STATUS_OPTS  = ['Potential', 'Active', 'Someday', 'Done', 'Cancelled'];
 
 // Data index reference (0-based, fixed — never reorder stored values):
 // 0  name
@@ -181,7 +181,11 @@ export function makeRow(depth, parentId = null, position = 0, vals = null) {
   const defs = COL_DEFS[type];
   const id   = makeId();
 
-  const values = vals ? [...vals] : defs.map(d => d.default ?? '');
+  const values = vals ? [...vals] : (() => {
+    const v = new Array(NUM_COLS).fill('');
+    defs.forEach((def, di) => { if (def.default !== undefined) v[COL_ORDER[di]] = def.default; });
+    return v;
+  })();
   while (values.length < NUM_COLS) values.push('');
 
   if (type === 'Goal' || type === 'Project' || type === 'Step') {
@@ -253,7 +257,7 @@ export function computeAvailability(rows) {
     const enablersRaw = (row.values[11] || '').trim();
     if (enablersRaw) {
       const ids = enablersRaw.split(',').map(s => s.trim()).filter(Boolean);
-      if (ids.some(id => statusOf[id] !== 'Completed' && statusOf[id] !== 'Cancelled')) {
+      if (ids.some(id => statusOf[id] !== 'Done' && statusOf[id] !== 'Cancelled')) {
         result[row.id] = 'No'; return;
       }
     }
@@ -277,7 +281,7 @@ export function computeAvailability(rows) {
             let firstId = null;
             for (let j = parentIdx + 1; j < pe; j++) {
               if (rows[j].depth === row.depth) {
-                if (statusOf[rows[j].id] !== 'Completed' && statusOf[rows[j].id] !== 'Cancelled') {
+                if (statusOf[rows[j].id] !== 'Done' && statusOf[rows[j].id] !== 'Cancelled') {
                   firstId = rows[j].id; break;
                 }
               }
@@ -603,11 +607,17 @@ export async function logout() {
 }
 
 // Module-level promise that tracks the latest in-flight save.
-// loadRows() awaits it so a hot-reload load can never race ahead of a flush.
-let _saveFlight = Promise.resolve();
+// Stored on window so it survives HMR module re-execution — otherwise a
+// hot-reload could reset the promise and let loadRows() race ahead of a
+// still-in-flight save from the unmount cleanup.
+if (typeof window !== 'undefined' && !window.__trackerSaveFlight) {
+  window.__trackerSaveFlight = Promise.resolve();
+}
+const _getF = () => (typeof window !== 'undefined' ? window.__trackerSaveFlight : Promise.resolve());
+const _setF = (p) => { if (typeof window !== 'undefined') window.__trackerSaveFlight = p; };
 
 export async function loadRows() {
-  await _saveFlight; // wait for any in-flight save to finish first
+  await _getF(); // wait for any in-flight save to finish first
   const res = await fetch(`${API}/rows`);
   if (!res.ok) throw new Error(`[storage] load failed: HTTP ${res.status}`);
   const rows = await res.json();
@@ -615,7 +625,7 @@ export async function loadRows() {
 }
 
 export function saveRows(rows) {
-  _saveFlight = _saveFlight.then(() =>
+  const next = _getF().then(() =>
     fetch(`${API}/rows`, {
       method: 'PUT',
       keepalive: true,
@@ -625,5 +635,6 @@ export function saveRows(rows) {
     .then(res => { if (!res.ok) console.warn('[storage] save returned', res.status); })
     .catch(err => { console.warn('[storage] save failed — data may be out of sync:', err); })
   );
-  return _saveFlight;
+  _setF(next);
+  return next;
 }

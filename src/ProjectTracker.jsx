@@ -14,16 +14,16 @@ const IMP_COLOR = { '1': '#10b981', '2': '#3b82f6', '3': '#eab308', '4': '#ef444
 const STATUS_LABEL = {
   Potential: 'P',
   Active:    'A',
-  Deferred:  'S',
-  Completed: 'D',
+  Someday:   'S',
+  Done:      'D',
   Cancelled: 'C',
 };
 
 const STATUS_STYLE = {
   Potential: { background: '#713f12', color: '#fef08a' },
   Active:    { background: '#052e16', color: '#4ade80' },
-  Deferred:  { background: '#431407', color: '#fb923c' },
-  Completed: { background: '#0c1a3a', color: '#60a5fa' },
+  Someday:   { background: '#431407', color: '#fb923c' },
+  Done:      { background: '#0c1a3a', color: '#60a5fa' },
   Cancelled: { background: '#1c0a0a', color: '#f87171' },
 };
 
@@ -91,8 +91,18 @@ function CellDisplay({ val, def }) {
   }
 
   if (def.type === 'available') {
-    if (val === 'Yes') return <span style={{ color: '#4ade80', fontWeight: 700 }}>Available</span>;
-    if (val === 'No')  return <span style={{ color: '#3a4060' }}>not a</span>;
+    if (val === 'Yes') return (
+      <span style={{
+        display: 'inline-block', width: '0.75em', height: '0.75em',
+        borderRadius: '50%', background: '#4ade80', verticalAlign: 'middle',
+      }} />
+    );
+    if (val === 'No') return (
+      <span style={{
+        display: 'inline-block', width: '0.75em', height: '0.75em',
+        borderRadius: '50%', background: '#475569', verticalAlign: 'middle',
+      }} />
+    );
     return null;
   }
 
@@ -109,8 +119,8 @@ function CellDisplay({ val, def }) {
     if (val === 'not r')      return <span>{val}</span>;
     if (val === 'event')      return <span style={{ background: '#164e63', color: '#67e8f9', borderRadius: 3, padding: '1px 7px' }}>event</span>;
     if (val === 'not e')      return <span>{val}</span>;
-    if (val === 'parallel')   return <span style={{ background: '#1e3a5f', color: '#93c5fd', borderRadius: 3, padding: '1px 7px' }}>parallel</span>;
-    if (val === 'sequential') return <span>{val}</span>;
+    if (val === 'parallel')   return <span style={{ background: '#1e3a5f', color: '#93c5fd', borderRadius: 3, padding: '1px 7px' }}>{'||'}</span>;
+    if (val === 'sequential') return <span>{'>>'}</span>;
     return <span>{val}</span>;
   }
 
@@ -162,6 +172,7 @@ function getCurrentWeekNumber() { return getCurrentWeek().week; }
 export default function ProjectTracker() {
   const [rows, setRows]       = useState(null);
   const [dataReady, setDataReady] = useState(false);
+  const [serverOk, setServerOk]   = useState(false); // false until a successful DB load
   const [sel, setSel]         = useState({ r: 0, c: 0 });
   const [editing, setEditing] = useState(false);
   const [filters, setFilters] = useState(() => ({
@@ -189,6 +200,7 @@ export default function ProjectTracker() {
         const data = await loadRows();
         if (!cancelled) {
           setRows(data ?? SEED_ROWS);
+          setServerOk(true); // server responded — safe to save
           setDataReady(true);
         }
       } catch (err) {
@@ -198,6 +210,7 @@ export default function ProjectTracker() {
           } else {
             console.error('[tracker] failed to load rows after retries:', err);
             setRows(SEED_ROWS);
+            // serverOk stays false — do NOT save fallback data over real DB content
             setDataReady(true);
           }
         }
@@ -210,7 +223,7 @@ export default function ProjectTracker() {
   // Persist on every rows change (debounced 800ms, skips initial load).
   // Also tracks the latest rows so the unmount handler can flush them.
   useEffect(() => {
-    if (!dataReady || rows === null) return;
+    if (!dataReady || rows === null || !serverOk) return;
     pendingRowsRef.current = rows;
     hasPendingSave.current = true;
     const t = setTimeout(() => {
@@ -218,7 +231,7 @@ export default function ProjectTracker() {
       hasPendingSave.current = false;
     }, 800);
     return () => clearTimeout(t);
-  }, [rows, dataReady]);
+  }, [rows, dataReady, serverOk]);
 
   // Flush any unsaved changes immediately when the component unmounts.
   // This covers HMR hot-reloads, which cancel the debounced save above.
