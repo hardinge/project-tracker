@@ -200,7 +200,7 @@ export default function ProjectTracker() {
   const [editing, setEditing] = useState(false);
   const [filters, setFilters] = useState(() => ({
     area:       '',
-    types:      new Set(['Goal','Project','Step','Action']),
+    types:      new Set(),
     nextAction: 'all',
     priority:   new Set(),
     iu:         '',

@@ -29,6 +29,7 @@ function Sel({ value, onChange, options }) {
 }
 
 const TYPE_COLORS = {
+  Area:    { active: '#1a1a22', border: '#a1a1aa' },
   Goal:    { active: '#2d1b6e', border: '#7c3aed' },
   Project: { active: '#1a2a5e', border: '#2563eb' },
   Step:    { active: '#063a2a', border: '#059669' },
@@ -123,7 +124,7 @@ export default function FilterBar({ filters, onChange, rows }) {
       {/* Type toggles */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <Label>Type</Label>
-        {['Goal','Project','Step','Action'].map(type => (
+        {['Area','Goal','Project','Step','Action'].map(type => (
           <ToggleBtn
             key={type}
             active={filters.types.has(type)}
