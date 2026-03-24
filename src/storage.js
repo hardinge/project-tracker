@@ -32,23 +32,23 @@ const STATUS_OPTS  = ['Potential', 'Active', 'Someday', 'Done', 'Cancelled'];
 // 14 id (readonly) | empty
 
 // Display column order: maps display position → data index
-// Display: name | status | available | week | priority | importance | context | date | time | $ total | link | sequence | routine | enablers | id
-export const COL_ORDER = [0, 12, 13, 5, 4, 2, 2, 6, 7, 3, 8, 9, 10, 11, 14];
+// Display: name | status | sequence | available | priority | week | importance | context | date | time | $ total | link | routine | enablers | id
+export const COL_ORDER = [0, 12, 9, 13, 5, 4, 2, 2, 6, 7, 3, 8, 10, 11, 14];
 
 export const COL_DEFS = {
   Area: [
     { label: 'Area',      type: 'text' },  // display 0 → data 0
     { label: '',          type: 'empty' }, // display 1 → data 12
-    { label: '',          type: 'empty' }, // display 2 → data 13
-    { label: '',          type: 'empty' }, // display 3 → data 5
-    { label: '',          type: 'empty' }, // display 4 → data 4
-    { label: '',          type: 'empty' }, // display 5 → data 2
-    { label: '',          type: 'empty' }, // display 6 → data 2 (context col)
-    { label: '',          type: 'empty' }, // display 7 → data 6
-    { label: '',          type: 'empty' }, // display 8 → data 7
-    { label: '',          type: 'empty' }, // display 9 → data 3
-    { label: '',          type: 'empty' }, // display 10 → data 8
-    { label: '',          type: 'empty' }, // display 11 → data 9
+    { label: '',          type: 'empty' }, // display 2 → data 9
+    { label: '',          type: 'empty' }, // display 3 → data 13
+    { label: '',          type: 'empty' }, // display 4 → data 5
+    { label: '',          type: 'empty' }, // display 5 → data 4
+    { label: '',          type: 'empty' }, // display 6 → data 2
+    { label: '',          type: 'empty' }, // display 7 → data 2 (context col)
+    { label: '',          type: 'empty' }, // display 8 → data 6
+    { label: '',          type: 'empty' }, // display 9 → data 7
+    { label: '',          type: 'empty' }, // display 10 → data 3
+    { label: '',          type: 'empty' }, // display 11 → data 8
     { label: '',          type: 'empty' }, // display 12 → data 10
     { label: '',          type: 'empty' }, // display 13 → data 11
     { label: '',          type: 'empty' }, // display 14 → data 14
@@ -56,16 +56,16 @@ export const COL_DEFS = {
   Goal: [
     { label: 'Goal',        type: 'text' },                                          // display 0 → data 0
     { label: 'Status',      type: 'status', options: STATUS_OPTS, default: 'Active' }, // display 1 → data 12
-    { label: 'Availability', type: 'available', readonly: true },                    // display 2 → data 13
-    { label: 'Priority',    type: 'priority', readonly: true },                      // display 3 → data 5
-    { label: 'Week',        type: 'week' },                                          // display 4 → data 4
-    { label: '',            type: 'empty' },                                         // display 5 → data 2
-    { label: '',            type: 'empty' },                                         // display 6 → data 2 (context col)
-    { label: 'Date',        type: 'date' },                                          // display 7 → data 6
-    { label: '',            type: 'empty' },                                         // display 8 → data 7
-    { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 9 → data 3
-    { label: 'Link',        type: 'url' },                                           // display 10 → data 8
-    { label: 'Sequence',    type: 'dropdown', options: TYPE_OPTS, default: 'sequential' }, // display 11 → data 9
+    { label: 'Sequence',    type: 'dropdown', options: TYPE_OPTS, default: 'sequential' }, // display 2 → data 9
+    { label: 'Availability', type: 'available', readonly: true },                    // display 3 → data 13
+    { label: 'Priority',    type: 'priority', readonly: true },                      // display 4 → data 5
+    { label: 'Week',        type: 'week' },                                          // display 5 → data 4
+    { label: '',            type: 'empty' },                                         // display 6 → data 2
+    { label: '',            type: 'empty' },                                         // display 7 → data 2 (context col)
+    { label: 'Date',        type: 'date' },                                          // display 8 → data 6
+    { label: '',            type: 'empty' },                                         // display 9 → data 7
+    { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 10 → data 3
+    { label: 'Link',        type: 'url' },                                           // display 11 → data 8
     { label: '',            type: 'empty' },                                         // display 12 → data 10
     { label: 'Enablers',    type: 'text' },                                          // display 13 → data 11
     { label: 'ID',          type: 'id', readonly: true },                            // display 14 → data 14
@@ -73,16 +73,16 @@ export const COL_DEFS = {
   Project: [
     { label: 'Project',     type: 'text' },                                          // display 0 → data 0
     { label: 'Status',      type: 'status', options: STATUS_OPTS, default: 'Active' }, // display 1 → data 12
-    { label: 'Availability', type: 'available', readonly: true },                    // display 2 → data 13
-    { label: 'Priority',    type: 'priority', readonly: true },                      // display 3 → data 5
-    { label: 'Week',        type: 'week' },                                          // display 4 → data 4
-    { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 5 → data 2
-    { label: '',            type: 'empty' },                                         // display 6 → data 2 (context col)
-    { label: 'Date',        type: 'date' },                                          // display 7 → data 6
-    { label: '',            type: 'empty' },                                         // display 8 → data 7
-    { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 9 → data 3
-    { label: 'Link',        type: 'url' },                                           // display 10 → data 8
-    { label: 'Sequence',    type: 'dropdown', options: TYPE_OPTS, default: 'sequential' }, // display 11 → data 9
+    { label: 'Sequence',    type: 'dropdown', options: TYPE_OPTS, default: 'sequential' }, // display 2 → data 9
+    { label: 'Availability', type: 'available', readonly: true },                    // display 3 → data 13
+    { label: 'Priority',    type: 'priority', readonly: true },                      // display 4 → data 5
+    { label: 'Week',        type: 'week' },                                          // display 5 → data 4
+    { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 6 → data 2
+    { label: '',            type: 'empty' },                                         // display 7 → data 2 (context col)
+    { label: 'Date',        type: 'date' },                                          // display 8 → data 6
+    { label: '',            type: 'empty' },                                         // display 9 → data 7
+    { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 10 → data 3
+    { label: 'Link',        type: 'url' },                                           // display 11 → data 8
     { label: '',            type: 'empty' },                                         // display 12 → data 10
     { label: 'Enablers',    type: 'text' },                                          // display 13 → data 11
     { label: 'ID',          type: 'id', readonly: true },                            // display 14 → data 14
@@ -90,16 +90,16 @@ export const COL_DEFS = {
   Step: [
     { label: 'Step',        type: 'text' },                                          // display 0 → data 0
     { label: 'Status',      type: 'status', options: STATUS_OPTS, default: 'Active' }, // display 1 → data 12
-    { label: 'Availability', type: 'available', readonly: true },                    // display 2 → data 13
-    { label: 'Priority',    type: 'priority', readonly: true },                      // display 3 → data 5
-    { label: 'Week',        type: 'week' },                                          // display 4 → data 4
-    { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 5 → data 2
-    { label: '',            type: 'empty' },                                         // display 6 → data 2 (context col)
-    { label: 'Date',        type: 'date' },                                          // display 7 → data 6
-    { label: 'Time',        type: 'time' },                                          // display 8 → data 7
-    { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 9 → data 3
-    { label: 'Link',        type: 'url' },                                           // display 10 → data 8
-    { label: 'Sequence',    type: 'dropdown', options: TYPE_OPTS, default: 'sequential' }, // display 11 → data 9
+    { label: 'Sequence',    type: 'dropdown', options: TYPE_OPTS, default: 'sequential' }, // display 2 → data 9
+    { label: 'Availability', type: 'available', readonly: true },                    // display 3 → data 13
+    { label: 'Priority',    type: 'priority', readonly: true },                      // display 4 → data 5
+    { label: 'Week',        type: 'week' },                                          // display 5 → data 4
+    { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 6 → data 2
+    { label: '',            type: 'empty' },                                         // display 7 → data 2 (context col)
+    { label: 'Date',        type: 'date' },                                          // display 8 → data 6
+    { label: 'Time',        type: 'time' },                                          // display 9 → data 7
+    { label: '$ total',     type: 'currency_sum', readonly: true },                  // display 10 → data 3
+    { label: 'Link',        type: 'url' },                                           // display 11 → data 8
     { label: 'Routine',     type: 'dropdown', options: ROUTINE_OPTS, default: 'not r' }, // display 12 → data 10
     { label: 'Enablers',    type: 'text' },                                          // display 13 → data 11
     { label: 'ID',          type: 'id', readonly: true },                            // display 14 → data 14
@@ -107,16 +107,16 @@ export const COL_DEFS = {
   Action: [
     { label: 'Action',    type: 'text' },                                            // display 0 → data 0
     { label: 'Status',    type: 'status', options: STATUS_OPTS, default: 'Active' }, // display 1 → data 12
-    { label: 'Available', type: 'available', readonly: true },                       // display 2 → data 13
-    { label: 'Priority',  type: 'priority', readonly: true },                        // display 3 → data 5
-    { label: '',          type: 'empty' },                                           // display 4 → data 4
-    { label: '',          type: 'empty' },                                           // display 5 → data 2 (importance col, n/a for actions)
-    { label: 'Context',   type: 'dropdown', options: CTX_OPTS },                     // display 6 → data 2
-    { label: 'Date',      type: 'date' },                                            // display 7 → data 6
-    { label: 'Time',      type: 'time' },                                            // display 8 → data 7
-    { label: '$ in/out',  type: 'currency' },                                        // display 9 → data 3
-    { label: 'Link',      type: 'url' },                                             // display 10 → data 8
-    { label: '',          type: 'empty' },                                           // display 11 → data 9
+    { label: '',          type: 'empty' },                                           // display 2 → data 9
+    { label: 'Available', type: 'available', readonly: true },                       // display 3 → data 13
+    { label: 'Priority',  type: 'priority', readonly: true },                        // display 4 → data 5
+    { label: '',          type: 'empty' },                                           // display 5 → data 4
+    { label: '',          type: 'empty' },                                           // display 6 → data 2 (importance col, n/a for actions)
+    { label: 'Context',   type: 'dropdown', options: CTX_OPTS },                     // display 7 → data 2
+    { label: 'Date',      type: 'date' },                                            // display 8 → data 6
+    { label: 'Time',      type: 'time' },                                            // display 9 → data 7
+    { label: '$ in/out',  type: 'currency' },                                        // display 10 → data 3
+    { label: 'Link',      type: 'url' },                                             // display 11 → data 8
     { label: 'Event',     type: 'dropdown', options: EVENT_OPTS, default: 'not e' }, // display 12 → data 10
     { label: '',          type: 'empty' },                                           // display 13 → data 11
     { label: '',          type: 'empty' },                                           // display 14 → data 14
@@ -127,22 +127,22 @@ export const COL_DEFS = {
 export const COL_HEADERS = [
   'Name',       // display 0  → data 0
   'Status',     // display 1  → data 12
-  'Available',  // display 2  → data 13
-  'Priority',   // display 3  → data 5
-  'Week',       // display 4  → data 4
-  'Importance', // display 5  → data 2
-  'Context',    // display 6  → data 2
-  'Date',       // display 7  → data 6
-  'Time',       // display 8  → data 7
-  '$',          // display 9  → data 3
-  'Link',       // display 10 → data 8
-  'Sequence',   // display 11 → data 9
+  'Sequence',   // display 2  → data 9
+  'Available',  // display 3  → data 13
+  'Priority',   // display 4  → data 5
+  'Week',       // display 5  → data 4
+  'Importance', // display 6  → data 2
+  'Context',    // display 7  → data 2
+  'Date',       // display 8  → data 6
+  'Time',       // display 9  → data 7
+  '$',          // display 10 → data 3
+  'Link',       // display 11 → data 8
   'Ro / Ev',    // display 12 → data 10
   'Enablers',   // display 13 → data 11
   'ID',         // display 14 → data 14
 ];
 
-export const COL_WIDTHS = [345, 40, 40, 65, 65, 65, 95, 100, 65, 85, 60, 90, 75, 100, 70];
+export const COL_WIDTHS = [345, 40, 40, 40, 65, 65, 65, 95, 100, 65, 85, 60, 75, 100, 70];
 export const INDENT_PX  = 20;
 export const NUM_COLS   = 15;
 
