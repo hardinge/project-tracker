@@ -532,7 +532,7 @@ export function computeVisible(rows, available, priorityMap, filters) {
   // ── Filter 3: Types ───────────────────────────────────────────────────────
   // Default state: empty Set — no type filter, all rows visible.
   // When one or more buttons are active: keep only rows whose type matches
-  // any active button (OR logic) and promote their ancestors for context.
+  // any active button (OR logic). No ancestor/context rows are promoted.
   if (types && types.size > 0) {
     const prev = indices;
     const next = new Set();
@@ -540,7 +540,6 @@ export function computeVisible(rows, available, priorityMap, filters) {
       const type = getType(rows[idx].depth);
       if (types.has(type)) {
         next.add(idx);
-        addAncestors(idx, prev, next);
       }
     }
     indices = next;
