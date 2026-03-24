@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   COL_DEFS, COL_HEADERS, COL_ORDER, COL_WIDTHS, INDENT_PX, NUM_COLS, TYPE_BADGE_COLOR,
   getType, makeRow, recomputeStructure, subtreeRange,
-  computeAvailability, computePriority, computeVisible,
+  computeAvailability, computePriority, computeInheritedImportance, computeVisible,
   getCurrentWeek, loadRows, saveRows, SEED_ROWS,
 } from './storage.js';
 import FilterBar from './FilterBar.jsx';
@@ -293,6 +293,9 @@ export default function ProjectTracker() {
 
   // ── Computed Priority ─────────────────────────────────────────────────────
   const computedPriority = useMemo(() => computePriority(rows ?? []), [rows]);
+
+  // ── Inherited Importance (Steps/Actions inherit from parent Project) ───────
+  const computedImportance = useMemo(() => computeInheritedImportance(rows ?? []), [rows]);
 
   // Focus input when editing starts
   useEffect(() => {
@@ -628,6 +631,8 @@ export default function ProjectTracker() {
                     : def.type === 'available'  ? (computedAvailable[row.id] ?? '')
                     : def.type === 'priority'   ? (computedPriority[row.id] ?? '')
                     : def.type === 'id'         ? row.id
+                    : (def.readonly && def.type === 'dropdown' && dataIdx === 2 && (type === 'Step' || type === 'Action'))
+                                                ? (computedImportance[row.id] ?? '')
                     : row.values[dataIdx];
 
                   const isSelCell  = isSelRow && sel.c === colIdx;
