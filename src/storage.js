@@ -485,24 +485,43 @@ export function computeVisible(rows, available, priorityMap, filters) {
     indices = next;
   }
 
-  // ── Filter 2: Types ───────────────────────────────────────────────────────
+  // ── Filter 2: Priority ────────────────────────────────────────────────────
+  // When any button is active: suppress Area/Goal rows entirely (no ancestor
+  // promotion), keep only Project/Step/Action rows whose priority bucket matches,
+  // and also include their descendant Steps and Actions.
+  if (priority && priority.size > 0) {
+    const addDescendants = (idx, currentIndices, resultSet) => {
+      const d = rows[idx].depth;
+      for (let j = idx + 1; j < rows.length; j++) {
+        if (rows[j].depth <= d) break;
+        if (!currentIndices.has(j)) continue;
+        const t = getType(rows[j].depth);
+        if (t === 'Step' || t === 'Action') resultSet.add(j);
+      }
+    };
+    const prev = indices;
+    const next = new Set();
+    for (const idx of prev) {
+      const type = getType(rows[idx].depth);
+      if (type === 'Area' || type === 'Goal') continue;
+      const bucket = getPriorityBucket(priorityMap[rows[idx].id]);
+      if (priority.has(bucket)) {
+        next.add(idx);
+        addDescendants(idx, prev, next);
+      }
+    }
+    indices = next;
+  }
+
+  // ── Filter 3: Types ───────────────────────────────────────────────────────
   const typesEnabled = types ?? new Set(['Goal','Project','Step','Action']);
   if (typesEnabled.size < 4) {
     applyFilter((idx, row, type) => typesEnabled.has(type));
   }
 
-  // ── Filter 3: Next Actions ────────────────────────────────────────────────
+  // ── Filter 4: Next Actions ────────────────────────────────────────────────
   if (nextAction === 'nextActions') {
     applyFilter((idx, row, type) => (type === 'Step' || type === 'Action') && available[row.id] === 'Yes');
-  }
-
-  // ── Filter 4: Priority ────────────────────────────────────────────────────
-  const priorityEnabled = priority ?? new Set(['X','0','1','2','3','4','5']);
-  if (priorityEnabled.size < 7) {
-    applyFilter((idx, row) => {
-      const bucket = getPriorityBucket(priorityMap[row.id]);
-      return priorityEnabled.has(bucket);
-    });
   }
 
   // ── Filter 5: Imp/Urg ─────────────────────────────────────────────────────

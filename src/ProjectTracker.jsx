@@ -202,7 +202,7 @@ export default function ProjectTracker() {
     area:       '',
     types:      new Set(['Goal','Project','Step','Action']),
     nextAction: 'all',
-    priority:   new Set(['X','0','1','2','3','4','5']),
+    priority:   new Set(),
     iu:         '',
     date:       '',
     search:     '',
