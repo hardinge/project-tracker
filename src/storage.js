@@ -487,8 +487,9 @@ export function computeVisible(rows, available, priorityMap, filters) {
 
   // ── Filter 2: Priority ────────────────────────────────────────────────────
   // When any button is active: suppress Area/Goal rows entirely (no ancestor
-  // promotion), keep only Project/Step/Action rows whose priority bucket matches,
-  // and also include their descendant Steps and Actions.
+  // promotion). Steps and Actions are kept when their own priority bucket
+  // matches. Project rows are kept as parent containers whenever any descendant
+  // Step or Action matches — the Project's own priority is not checked.
   if (priority && priority.size > 0) {
     const addDescendants = (idx, currentIndices, resultSet) => {
       const d = rows[idx].depth;
@@ -504,10 +505,25 @@ export function computeVisible(rows, available, priorityMap, filters) {
     for (const idx of prev) {
       const type = getType(rows[idx].depth);
       if (type === 'Area' || type === 'Goal') continue;
-      const bucket = getPriorityBucket(priorityMap[rows[idx].id]);
-      if (priority.has(bucket)) {
-        next.add(idx);
-        addDescendants(idx, prev, next);
+      if (type === 'Project') {
+        // Show project if any descendant Step or Action matches the priority filter.
+        const [, end] = subtreeRange(rows, idx);
+        for (let j = idx + 1; j < end; j++) {
+          if (!prev.has(j)) continue;
+          const descType = getType(rows[j].depth);
+          if ((descType === 'Step' || descType === 'Action') &&
+              priority.has(getPriorityBucket(priorityMap[rows[j].id]))) {
+            next.add(idx);
+            break;
+          }
+        }
+      } else {
+        // Step or Action: include if own priority bucket matches.
+        const bucket = getPriorityBucket(priorityMap[rows[idx].id]);
+        if (priority.has(bucket)) {
+          next.add(idx);
+          addDescendants(idx, prev, next);
+        }
       }
     }
     indices = next;
