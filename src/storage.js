@@ -94,7 +94,7 @@ export const COL_DEFS = {
     { label: 'Availability', type: 'available', readonly: true },                    // display 3 → data 13
     { label: 'Priority',    type: 'priority', readonly: true },                      // display 4 → data 5
     { label: 'Week',        type: 'week' },                                          // display 5 → data 4
-    { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 6 → data 2
+    { label: 'Importance',  type: 'dropdown', readonly: true },                       // display 6 → data 2, inherited from Project
     { label: '',            type: 'empty' },                                         // display 7 → data 2 (context col)
     { label: 'Date',        type: 'date' },                                          // display 8 → data 6
     { label: 'Time',        type: 'time' },                                          // display 9 → data 7
@@ -393,7 +393,14 @@ export function computePriority(rows) {
     }
 
     // Goal / Project / Step
-    const importance = row.values[2]; // Importance (index 2)
+    // Steps inherit importance from their nearest Project ancestor (depth 2).
+    let importance = row.values[2]; // Importance (index 2)
+    if (type === 'Step') {
+      for (let j = i - 1; j >= 0; j--) {
+        if (rows[j].depth === 2) { importance = rows[j].values[2]; break; }
+        if (rows[j].depth < 2) break;
+      }
+    }
     const weekStr    = row.values[4]; // Week ww-yy (index 4)
 
     if (!importance || !weekStr) { result[row.id] = ''; return; }
@@ -408,6 +415,29 @@ export function computePriority(rows) {
     result[row.id] = `${weeksLeft}.${importance}`;
   });
 
+  return result;
+}
+
+/**
+ * Compute the inherited importance for Step and Action rows.
+ * Returns a map: rowId → importance string ('1'–'5' | '').
+ *
+ * Steps and Actions inherit the importance of their nearest Project ancestor
+ * (depth 2). Projects return their own stored importance.
+ */
+export function computeInheritedImportance(rows) {
+  const result = {};
+  rows.forEach((row, i) => {
+    const type = getType(row.depth);
+    if (type === 'Project') {
+      result[row.id] = row.values[2];
+    } else if (type === 'Step' || type === 'Action') {
+      for (let j = i - 1; j >= 0; j--) {
+        if (rows[j].depth === 2) { result[row.id] = rows[j].values[2]; break; }
+        if (rows[j].depth < 2) break;
+      }
+    }
+  });
   return result;
 }
 
@@ -554,7 +584,16 @@ export function computeVisible(rows, available, priorityMap, filters) {
   if (iu) {
     const threshold = IU_SCORES[iu];
     applyFilter((idx, row) => {
-      const score = IU_SCORES[row.values[2]];
+      const type = getType(row.depth);
+      let importance = row.values[2];
+      if (type === 'Step' || type === 'Action') {
+        // Inherit importance from nearest Project ancestor (depth 2)
+        for (let j = idx - 1; j >= 0; j--) {
+          if (rows[j].depth === 2) { importance = rows[j].values[2]; break; }
+          if (rows[j].depth < 2) break;
+        }
+      }
+      const score = IU_SCORES[importance];
       return score !== undefined && score >= threshold;
     });
   }
