@@ -142,7 +142,7 @@ function CellDisplay({ val, def }) {
     if (val === 'not r')      return <span>{val}</span>;
     if (val === 'event')      return <span style={{ background: '#164e63', color: '#67e8f9', borderRadius: 3, padding: '1px 7px' }}>event</span>;
     if (val === 'not e')      return <span>{val}</span>;
-    if (val === 'parallel')   return <span style={{ background: '#1e3a5f', color: '#93c5fd', borderRadius: 3, padding: '1px 7px' }}>{'||'}</span>;
+    if (val === 'parallel')   return <span>{'||'}</span>;
     if (val === 'sequential') return <span>{'>>'}</span>;
     return <span>{val}</span>;
   }
