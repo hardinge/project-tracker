@@ -595,13 +595,21 @@ export default function ProjectTracker() {
               : type === 'Step'    ? '#1d2133'
               :                      '#1e2238';
 
+            const PROJECT_BRACKET_COLOR = '#2e3f6a';
+            const isProjectRow = type === 'Project';
+            const nextRow = visible[rowIdx + 1];
+            const isLastProjectDescendant = row.depth >= 2 && (!nextRow || nextRow.row.depth < 2);
+
             return (
               <div
                 id={`row-${rowIdx}`}
                 key={row.id}
                 style={{
                   display: 'flex',
-                  borderBottom: `1px solid ${isSelRow ? '#2d4a6e' : '#1e2235'}`,
+                  borderTop: isProjectRow ? `1px solid ${PROJECT_BRACKET_COLOR}` : undefined,
+                  borderBottom: isLastProjectDescendant
+                    ? `1px solid ${PROJECT_BRACKET_COLOR}`
+                    : `1px solid ${isSelRow ? '#2d4a6e' : '#1e2235'}`,
                   background: rowBg, transition: 'background 0.1s',
                 }}
                 onMouseDown={() => {
