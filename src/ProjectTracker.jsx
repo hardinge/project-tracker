@@ -198,6 +198,7 @@ export default function ProjectTracker() {
   const [serverOk, setServerOk]   = useState(false); // false until a successful DB load
   const [sel, setSel]         = useState({ r: 0, c: 0 });
   const [editing, setEditing] = useState(false);
+  const [filterFocus, setFilterFocus] = useState(null);
   const [filters, setFilters] = useState(() => ({
     area:       '',
     types:      new Set(),
@@ -360,7 +361,17 @@ export default function ProjectTracker() {
   }, []);
 
   // ── Keyboard ─────────────────────────────────────────────────────────────
+  const returnToTable = useCallback(() => {
+    setFilterFocus(null);
+    setSel(s => ({ ...s, r: 0 }));
+    containerRef.current?.focus();
+  }, []);
+
   const handleKeyDown = useCallback((e) => {
+    // Only process events fired directly on the container (i.e. when it has DOM focus).
+    // Events from filter controls or cell inputs bubble up but should be ignored here.
+    if (e.target !== containerRef.current) return;
+
     const numRows = visible.length;
     if (numRows === 0) return;
 
@@ -382,7 +393,14 @@ export default function ProjectTracker() {
     // ── Plain arrow navigation (no modifier) ────────────────────────────────
     if (!isCtrl && !isShift) {
       if      (e.key === 'ArrowDown')  { e.preventDefault(); setSel({ r: Math.min(r + 1, numRows - 1), c }); }
-      else if (e.key === 'ArrowUp')    { e.preventDefault(); setSel({ r: Math.max(r - 1, 0), c }); }
+      else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (r === 0) {
+          setFilterFocus({ ctrl: 'area', subIdx: 0 });
+        } else {
+          setSel({ r: r - 1, c });
+        }
+      }
       else if (e.key === 'ArrowRight') { e.preventDefault(); setSel({ r, c: Math.min(c + 1, COL_ORDER.length - 1) }); }
       else if (e.key === 'ArrowLeft')  { e.preventDefault(); setSel({ r, c: Math.max(c - 1, 0) }); }
       else if (e.key === 'Enter')      { e.preventDefault(); setEditing(true); }
@@ -567,7 +585,15 @@ export default function ProjectTracker() {
       </div>
 
       {/* ── Filter bar ── */}
-      <FilterBar filters={filters} onChange={setFilters} rows={rows} />
+      <FilterBar
+        filters={filters}
+        onChange={setFilters}
+        rows={rows}
+        filterFocus={filterFocus}
+        onFilterFocusChange={setFilterFocus}
+        onReturnToTable={returnToTable}
+        navMode={!editing}
+      />
 
       {/* ── Column headers — permanent ── */}
       <div style={{ display: 'flex', background: '#1a1d2e', borderBottom: '2px solid #2d3149', flexShrink: 0 }}>
@@ -618,6 +644,7 @@ export default function ProjectTracker() {
                 onMouseDown={() => {
                   setSel({ r: rowIdx, c: sel.c });
                   setEditing(false);
+                  setFilterFocus(null);
                   containerRef.current?.focus();
                 }}
               >
