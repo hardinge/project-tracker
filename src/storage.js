@@ -59,7 +59,7 @@ export const COL_DEFS = {
     { label: 'Sequence',    type: 'dropdown', options: TYPE_OPTS, default: 'sequential' }, // display 2 → data 9
     { label: 'Availability', type: 'available', readonly: true },                    // display 3 → data 13
     { label: 'Priority',    type: 'priority', readonly: true },                      // display 4 → data 5
-    { label: 'Week',        type: 'week' },                                          // display 5 → data 4
+    { label: '',            type: 'empty' },                                         // display 5 → data 4
     { label: '',            type: 'empty' },                                         // display 6 → data 2
     { label: '',            type: 'empty' },                                         // display 7 → data 2 (context col)
     { label: 'Date',        type: 'date' },                                          // display 8 → data 6
@@ -76,7 +76,7 @@ export const COL_DEFS = {
     { label: 'Sequence',    type: 'dropdown', options: TYPE_OPTS, default: 'sequential' }, // display 2 → data 9
     { label: 'Availability', type: 'available', readonly: true },                    // display 3 → data 13
     { label: 'Priority',    type: 'priority', readonly: true },                      // display 4 → data 5
-    { label: 'Week',        type: 'week' },                                          // display 5 → data 4
+    { label: '',            type: 'empty' },                                         // display 5 → data 4
     { label: 'Importance',  type: 'dropdown', options: IU_OPTS },                    // display 6 → data 2
     { label: '',            type: 'empty' },                                         // display 7 → data 2 (context col)
     { label: 'Date',        type: 'date' },                                          // display 8 → data 6
@@ -110,7 +110,7 @@ export const COL_DEFS = {
     { label: '',          type: 'empty' },                                           // display 2 → data 9
     { label: 'Available', type: 'available', readonly: true },                       // display 3 → data 13
     { label: 'Priority',  type: 'priority', readonly: true },                        // display 4 → data 5
-    { label: '',          type: 'empty' },                                           // display 5 → data 4
+    { label: 'Week',      type: 'week' },                                            // display 5 → data 4
     { label: '',          type: 'empty' },                                           // display 6 → data 2 (importance col, n/a for actions)
     { label: 'Context',   type: 'dropdown', options: CTX_OPTS },                     // display 7 → data 2
     { label: 'Date',      type: 'date' },                                            // display 8 → data 6
