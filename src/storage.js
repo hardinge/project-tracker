@@ -111,7 +111,7 @@ export const COL_DEFS = {
     { label: 'Available', type: 'available', readonly: true },                       // display 3 → data 13
     { label: 'Priority',  type: 'priority', readonly: true },                        // display 4 → data 5
     { label: 'Week',      type: 'week' },                                            // display 5 → data 4
-    { label: '',          type: 'empty' },                                           // display 6 → data 2 (importance col, n/a for actions)
+    { label: 'Importance', type: 'dropdown', readonly: true },                        // display 6 → data 2, inherited from Project via Step
     { label: 'Context',   type: 'dropdown', options: CTX_OPTS },                     // display 7 → data 2
     { label: 'Date',      type: 'date' },                                            // display 8 → data 6
     { label: 'Time',      type: 'time' },                                            // display 9 → data 7
