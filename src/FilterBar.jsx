@@ -52,6 +52,7 @@ const BASE_DROPDOWN_STYLE = {
 function FilterDropdown({ value, onChange, options, isFocused, onNavKey, dropdownRef }) {
   const [isOpen, setIsOpen] = useState(false);
   const [tentIdx, setTentIdx] = useState(0);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0, minWidth: 0 });
 
   // Close when this control loses logical focus
   useEffect(() => {
@@ -61,6 +62,11 @@ function FilterDropdown({ value, onChange, options, isFocused, onNavKey, dropdow
   function openDropdown() {
     const idx = options.findIndex(o => o.value === value);
     setTentIdx(idx >= 0 ? idx : 0);
+    // Calculate fixed position from button rect so the menu floats above the page
+    if (dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect();
+      setMenuPos({ top: rect.bottom + 2, left: rect.left, minWidth: rect.width });
+    }
     setIsOpen(true);
   }
 
@@ -111,9 +117,13 @@ function FilterDropdown({ value, onChange, options, isFocused, onNavKey, dropdow
       </div>
       {isOpen && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 2px)', left: 0, zIndex: 200,
+          position: 'fixed',
+          top: menuPos.top,
+          left: menuPos.left,
+          minWidth: menuPos.minWidth,
+          zIndex: 9999,
           background: '#1a1d2e', border: '1px solid #3b82f6', borderRadius: 4,
-          minWidth: '100%', boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
           overflow: 'hidden',
         }}>
           {options.map((opt, i) => (
