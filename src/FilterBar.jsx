@@ -121,12 +121,18 @@ function FilterDropdown({ value, onChange, options, isFocused, onNavKey, dropdow
               key={opt.value}
               onMouseDown={e => { e.preventDefault(); onChange(opt.value); setIsOpen(false); }}
               style={{
-                padding: '4px 10px', fontSize: 13, cursor: 'pointer',
+                padding: '4px 10px',
+                paddingLeft: opt.depth === 1 ? 22 : 10,
+                fontSize: opt.depth === 1 ? 12 : 13,
+                cursor: 'pointer',
                 background: i === tentIdx ? '#1e3a5f' : 'transparent',
-                color: i === tentIdx ? '#e2e8f0' : '#94a3b8',
+                color: i === tentIdx ? '#e2e8f0' : (opt.depth === 1 ? '#7c6fad' : '#94a3b8'),
                 borderLeft: `2px solid ${i === tentIdx ? '#3b82f6' : 'transparent'}`,
               }}
             >
+              {opt.depth === 1 && (
+                <span style={{ marginRight: 4, opacity: 0.6 }}>↳</span>
+              )}
               {opt.label}
             </div>
           ))}
@@ -204,8 +210,6 @@ export default function FilterBar({
   filters, onChange, rows,
   filterFocus, onFilterFocusChange, onReturnToTable, navMode,
 }) {
-  const areas = rows.filter(r => r.depth === 0);
-
   function update(key, val) { onChange({ ...filters, [key]: val }); }
 
   function toggleType(type) {
@@ -259,10 +263,14 @@ export default function FilterBar({
     }
   }
 
-  const areaOptions = [
-    { value: '', label: 'All' },
-    ...areas.map(a => ({ value: a.id, label: a.values[0] || '(unnamed)' })),
-  ];
+  const areaOptions = [{ value: '', label: 'All' }];
+  for (const row of rows) {
+    if (row.depth === 0) {
+      areaOptions.push({ value: row.id, label: row.values[0] || '(unnamed)', depth: 0 });
+    } else if (row.depth === 1) {
+      areaOptions.push({ value: row.id, label: row.values[0] || '(unnamed)', depth: 1 });
+    }
+  }
 
   const importanceOptions = [
     { value: '', label: 'All' },
