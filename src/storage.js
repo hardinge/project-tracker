@@ -441,6 +441,57 @@ export function computeInheritedImportance(rows) {
   return result;
 }
 
+/**
+ * Compute upward-inherited priority for Project and Goal rows.
+ * Returns a map: rowId → 'x.y' | '' (same format as computedPriority).
+ *
+ * Project rows: the lowest (most urgent) priority value among direct Step children
+ *   that have a computed priority. Lower numeric value = more urgent.
+ * Goal rows: the lowest priority value among direct Project children's upward-inherited
+ *   priority (as computed above for Projects).
+ *
+ * This is read-only and never stored.
+ */
+export function computeUpwardInheritedPriority(rows, computedPriority) {
+  const result = {};
+
+  function minPriority(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    return parseFloat(a) <= parseFloat(b) ? a : b;
+  }
+
+  // First pass: Projects — minimum priority among direct Step children
+  rows.forEach((row, i) => {
+    if (getType(row.depth) !== 'Project') return;
+    let min = '';
+    for (let j = i + 1; j < rows.length; j++) {
+      if (rows[j].depth <= row.depth) break;
+      if (rows[j].depth === row.depth + 1 && getType(rows[j].depth) === 'Step') {
+        const p = computedPriority[rows[j].id];
+        if (p) min = minPriority(min, p);
+      }
+    }
+    result[row.id] = min;
+  });
+
+  // Second pass: Goals — minimum upward-inherited priority among direct Project children
+  rows.forEach((row, i) => {
+    if (getType(row.depth) !== 'Goal') return;
+    let min = '';
+    for (let j = i + 1; j < rows.length; j++) {
+      if (rows[j].depth <= row.depth) break;
+      if (rows[j].depth === row.depth + 1 && getType(rows[j].depth) === 'Project') {
+        const p = result[rows[j].id];
+        if (p) min = minPriority(min, p);
+      }
+    }
+    result[row.id] = min;
+  });
+
+  return result;
+}
+
 // ─── Visibility computation ───────────────────────────────────────────────────
 
 /**

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   COL_DEFS, COL_HEADERS, COL_ORDER, COL_WIDTHS, INDENT_PX, NUM_COLS, TYPE_BADGE_COLOR,
   getType, makeRow, recomputeStructure, subtreeRange,
-  computeAvailability, computePriority, computeInheritedImportance, computeVisible,
+  computeAvailability, computePriority, computeInheritedImportance, computeUpwardInheritedPriority, computeVisible,
   getCurrentWeek, loadRows, saveRows, SEED_ROWS,
 } from './storage.js';
 import FilterBar from './FilterBar.jsx';
@@ -27,7 +27,7 @@ const STATUS_STYLE = {
   Cancelled: { background: '#1c0a0a', color: '#f87171' },
 };
 
-function CellDisplay({ val, def }) {
+function CellDisplay({ val, def, inherited }) {
   if (def.type === 'empty') return null;
   if (val === '' || val == null) {
     return def.readonly ? null : <span style={{ color: '#3a4060' }}>—</span>;
@@ -80,7 +80,7 @@ function CellDisplay({ val, def }) {
              : x === 3 ? '#f97316'
              :            '#ef4444';
     return (
-      <span style={{ background: bg, color: '#fff', borderRadius: 3, padding: '1px 7px', fontWeight: 700 }}>
+      <span style={{ background: bg, color: '#fff', borderRadius: inherited ? 10 : 3, padding: '1px 7px', fontWeight: 700 }}>
         {val}
       </span>
     );
@@ -294,6 +294,12 @@ export default function ProjectTracker() {
 
   // ── Computed Priority ─────────────────────────────────────────────────────
   const computedPriority = useMemo(() => computePriority(rows ?? []), [rows]);
+
+  // ── Upward-Inherited Priority (Projects/Goals show min from children) ──────
+  const computedInheritedPriority = useMemo(
+    () => computeUpwardInheritedPriority(rows ?? [], computedPriority),
+    [rows, computedPriority],
+  );
 
   // ── Inherited Importance (Steps/Actions inherit from parent Project) ───────
   const computedImportance = useMemo(() => computeInheritedImportance(rows ?? []), [rows]);
@@ -653,10 +659,13 @@ export default function ProjectTracker() {
 
                   // Resolve display value — computed fields override stored
                   const dataIdx = COL_ORDER[colIdx];
+                  const isInheritedPriorityRow = type === 'Project' || type === 'Goal';
                   const displayVal =
                     def.type === 'currency_sum' ? (computedSums[row.id] ?? 0)
                     : def.type === 'available'  ? (computedAvailable[row.id] ?? '')
-                    : def.type === 'priority'   ? (computedPriority[row.id] ?? '')
+                    : def.type === 'priority'   ? (isInheritedPriorityRow
+                                                    ? (computedInheritedPriority[row.id] ?? '')
+                                                    : (computedPriority[row.id] ?? ''))
                     : def.type === 'id'         ? row.id
                     : (def.readonly && def.type === 'dropdown' && dataIdx === 2 && (type === 'Step' || type === 'Action'))
                                                 ? (computedImportance[row.id] ?? '')
@@ -769,7 +778,7 @@ export default function ProjectTracker() {
                                : colIdx === 0 ? '#e2e8f0'
                                : '#94a3b8',
                         }}>
-                          <CellDisplay val={displayVal} def={def} />
+                          <CellDisplay val={displayVal} def={def} inherited={def.type === 'priority' && isInheritedPriorityRow} />
                         </span>
                       )}
                     </div>
