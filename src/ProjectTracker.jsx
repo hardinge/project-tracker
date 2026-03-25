@@ -134,7 +134,7 @@ function CellDisplay({ val, def, inherited }) {
       return (
         <span style={{
           background: IMP_COLOR[val], color: '#fff',
-          borderRadius: 3, padding: '1px 7px', fontWeight: 700,
+          borderRadius: inherited ? 10 : 3, padding: '1px 7px', fontWeight: 700,
         }}>{val}</span>
       );
     }
@@ -778,7 +778,10 @@ export default function ProjectTracker() {
                                : colIdx === 0 ? '#e2e8f0'
                                : '#94a3b8',
                         }}>
-                          <CellDisplay val={displayVal} def={def} inherited={def.type === 'priority' && isInheritedPriorityRow} />
+                          <CellDisplay val={displayVal} def={def} inherited={
+                            (def.type === 'priority' && isInheritedPriorityRow) ||
+                            (def.type === 'dropdown' && dataIdx === 2 && (type === 'Step' || type === 'Action'))
+                          } />
                         </span>
                       )}
                     </div>
