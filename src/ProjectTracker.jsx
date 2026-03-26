@@ -1,205 +1,26 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  COL_DEFS, COL_HEADERS, COL_ORDER, COL_WIDTHS, INDENT_PX, NUM_COLS, TYPE_BADGE_COLOR,
+  COL_ORDER, TYPE_BADGE_COLOR,
   getType, makeRow, recomputeStructure, subtreeRange,
   computeAvailability, computePriority, computeInheritedImportance, computeUpwardInheritedPriority, computeVisible,
   getCurrentWeek, loadRows, saveRows, SEED_ROWS,
 } from './storage.js';
 import FilterBar from './FilterBar.jsx';
-
-// ─── Cell display renderer ────────────────────────────────────────────────────
-
-const IMP_COLOR = { '1': '#10b981', '2': '#3b82f6', '3': '#eab308', '4': '#ef4444', '5': '#111827' };
-
-const STATUS_LABEL = {
-  Potential: 'P',
-  Active:    'A',
-  Someday:   'S',
-  Done:      'D',
-  Cancelled: 'C',
-};
-
-const STATUS_STYLE = {
-  Potential: { background: '#713f12', color: '#fef08a' },
-  Active:    { background: '#052e16', color: '#4ade80' },
-  Someday:   { background: '#431407', color: '#fb923c' },
-  Done:      { background: '#0c1a3a', color: '#60a5fa' },
-  Cancelled: { background: '#1c0a0a', color: '#f87171' },
-};
-
-function CellDisplay({ val, def, inherited }) {
-  if (def.type === 'empty') return null;
-  if (val === '' || val == null) {
-    return def.readonly ? null : <span style={{ color: '#3a4060' }}>—</span>;
-  }
-
-  if (def.type === 'currency_sum') {
-    const n = typeof val === 'number' ? val : parseFloat(val);
-    if (isNaN(n) || n === 0) return null;
-    return (
-      <span style={{
-        color: n > 0 ? '#10b981' : '#ef4444',
-        fontVariantNumeric: 'tabular-nums', fontFamily: 'monospace',
-      }}>
-        {n > 0 ? '+' : '−'}${Math.abs(n).toLocaleString()}
-      </span>
-    );
-  }
-
-  if (def.type === 'time') {
-    return <span style={{ fontFamily: 'monospace' }}>{val}</span>;
-  }
-
-  if (def.type === 'week') {
-    const m = val.match(/^(\d{1,2})-(\d{2})$/);
-    if (m) {
-      const { week: currentWeek, year: currentYear } = getCurrentWeek();
-      const targetWeek = parseInt(m[1], 10);
-      const targetYear = 2000 + parseInt(m[2], 10);
-      const diff = (targetYear - currentYear) * 52 + (targetWeek - currentWeek);
-      const bg = diff <= 0 ? '#10b981'
-               : diff === 1 ? '#3b82f6'
-               : diff === 2 ? '#eab308'
-               : diff === 3 ? '#f97316'
-               : diff === 4 ? '#ef4444'
-               :               '#111827';
-      return (
-        <span style={{ background: bg, color: '#fff', borderRadius: 3, padding: '1px 7px', fontWeight: 700, fontFamily: 'monospace' }}>
-          {val}
-        </span>
-      );
-    }
-    return <span style={{ fontFamily: 'monospace', color: '#7dd3fc' }}>{val}</span>;
-  }
-
-  if (def.type === 'priority') {
-    const x = parseInt(val.split('.')[0], 10);
-    const bg = x === 0 ? '#10b981'
-             : x === 1 ? '#3b82f6'
-             : x === 2 ? '#eab308'
-             : x === 3 ? '#f97316'
-             :            '#ef4444';
-    return (
-      <span style={{ background: bg, color: '#fff', borderRadius: inherited ? 10 : 3, padding: '1px 7px', fontWeight: 700 }}>
-        {val}
-      </span>
-    );
-  }
-
-  if (def.type === 'date') {
-    const d = new Date(val + 'T00:00:00');
-    if (isNaN(d)) return <span>{val}</span>;
-    const day = d.toLocaleDateString('en-GB', { weekday: 'short' });
-    return <span>{day} {d.getDate()}-{d.getMonth() + 1}-{d.getFullYear()}</span>;
-  }
-
-  if (def.type === 'id') {
-    return <span style={{ fontFamily: 'monospace', letterSpacing: '0.5px' }}>{val}</span>;
-  }
-
-  if (def.type === 'status') {
-    const s = STATUS_STYLE[val];
-    if (!s) return <span>{val}</span>;
-    return (
-      <span style={{ ...s, borderRadius: 3, padding: '1px 7px', fontWeight: 700, fontFamily: 'monospace' }}>
-        {STATUS_LABEL[val] ?? val}
-      </span>
-    );
-  }
-
-  if (def.type === 'available') {
-    if (val === 'Yes') return (
-      <span style={{
-        display: 'inline-block', width: '0.75em', height: '0.75em',
-        borderRadius: '50%', background: '#4ade80', verticalAlign: 'middle',
-      }} />
-    );
-    if (val === 'Potential') return (
-      <span style={{
-        display: 'inline-block', width: '0.75em', height: '0.75em',
-        borderRadius: '50%', background: '#f97316', verticalAlign: 'middle',
-      }} />
-    );
-    if (val === 'No') return (
-      <span style={{
-        display: 'inline-block', width: '0.75em', height: '0.75em',
-        borderRadius: '50%', background: '#475569', verticalAlign: 'middle',
-      }} />
-    );
-    return null;
-  }
-
-  if (def.type === 'dropdown') {
-    if (IMP_COLOR[val]) {
-      return (
-        <span style={{
-          background: IMP_COLOR[val], color: '#fff',
-          borderRadius: inherited ? 10 : 3, padding: '1px 7px', fontWeight: 700,
-        }}>{val}</span>
-      );
-    }
-    if (val === 'routine')    return <span style={{ background: '#312e81', color: '#a5b4fc', borderRadius: 3, padding: '1px 7px' }}>routine</span>;
-    if (val === 'not r')      return <span>{val}</span>;
-    if (val === 'event')      return <span style={{ background: '#164e63', color: '#67e8f9', borderRadius: 3, padding: '1px 7px' }}>event</span>;
-    if (val === 'not e')      return <span>{val}</span>;
-    if (val === 'parallel')   return <span>{'||'}</span>;
-    if (val === 'sequential') return <span>{'>>'}</span>;
-    return <span>{val}</span>;
-  }
-
-  if (def.type === 'currency') {
-    const n = parseFloat(val);
-    if (isNaN(n)) return <span>{val}</span>;
-    return (
-      <span style={{
-        color: n >= 0 ? '#10b981' : '#ef4444',
-        fontVariantNumeric: 'tabular-nums', fontFamily: 'monospace',
-      }}>
-        {n >= 0 ? '+' : '−'}${Math.abs(n).toLocaleString()}
-      </span>
-    );
-  }
-
-  if (def.type === 'url') {
-    return (
-      <a
-        href={val} target="_blank" rel="noopener noreferrer"
-        style={{ color: '#3b82f6', textDecoration: 'none' }}
-        onClick={e => e.stopPropagation()}
-      >
-        🔗 link
-      </a>
-    );
-  }
-
-  return <span>{val}</span>;
-}
-
-// ─── Week column format validation ────────────────────────────────────────────
-
-/** Validates ww-yy format (e.g. "27-26"). Week must be 1–53, year 2 digits. */
-function isValidWeek(val) {
-  if (!val) return true;
-  const m = val.match(/^(\d{1,2})-(\d{2})$/);
-  if (!m) return false;
-  const week = parseInt(m[1], 10);
-  return week >= 1 && week <= 53;
-}
-
-// ─── Week number helper ───────────────────────────────────────────────────────
+import MainTable from './MainTable.jsx';
+import LeftPanel from './LeftPanel.jsx';
 
 function getCurrentWeekNumber() { return getCurrentWeek().week; }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ProjectTracker() {
-  const [rows, setRows]       = useState(null);
+  const [rows, setRows]           = useState(null);
   const [dataReady, setDataReady] = useState(false);
-  const [serverOk, setServerOk]   = useState(false); // false until a successful DB load
-  const [sel, setSel]         = useState({ r: 0, c: 0 });
-  const [editing, setEditing] = useState(false);
+  const [serverOk, setServerOk]   = useState(false);
+  const [sel, setSel]             = useState({ r: 0, c: 0 });
+  const [editing, setEditing]     = useState(false);
   const [filterFocus, setFilterFocus] = useState(null);
-  const [filters, setFilters] = useState(() => ({
+  const [filters, setFilters]     = useState(() => ({
     area:       '',
     types:      new Set(),
     nextAction: 'all',
@@ -209,32 +30,37 @@ export default function ProjectTracker() {
     search:     '',
   }));
 
-  const inputRef     = useRef(null);
-  const containerRef = useRef(null);
+  // Left panel state
+  const [lpSelection, setLpSelection] = useState(new Set()); // Set of row IDs selected in left panel
+  const [flashedRowId, setFlashedRowId] = useState(null);
 
-  // Ref to the latest rows so the unmount cleanup can save them without stale closure
+  const containerRef  = useRef(null); // main table focusable div
+  const leftPanelRef  = useRef(null); // left panel focusable div
   const pendingRowsRef = useRef(null);
   const hasPendingSave = useRef(false);
+  const flashTimerRef  = useRef(null);
 
-  // Load rows from server on mount.
-  // If rows are already in memory (React Fast Refresh preserved state across an
-  // HMR update), skip the server round-trip — reloading would overwrite any
-  // unsaved in-memory changes with whatever the server last persisted.
+  // ── Flash feedback for blocked moves ─────────────────────────────────────
+  const flashRow = useCallback((id) => {
+    setFlashedRowId(id);
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    flashTimerRef.current = setTimeout(() => setFlashedRowId(null), 400);
+  }, []);
+
+  // ── Load rows from server ─────────────────────────────────────────────────
   useEffect(() => {
     if (rows !== null) {
-      // HMR hot-reload: state was preserved, no need to reload from server.
       setServerOk(true);
       setDataReady(true);
       return;
     }
-
     let cancelled = false;
     async function load(attempt = 0) {
       try {
         const data = await loadRows();
         if (!cancelled) {
           setRows(data ?? SEED_ROWS);
-          setServerOk(true); // server responded — safe to save
+          setServerOk(true);
           setDataReady(true);
         }
       } catch (err) {
@@ -244,7 +70,6 @@ export default function ProjectTracker() {
           } else {
             console.error('[tracker] failed to load rows after retries:', err);
             setRows(SEED_ROWS);
-            // serverOk stays false — do NOT save fallback data over real DB content
             setDataReady(true);
           }
         }
@@ -254,8 +79,7 @@ export default function ProjectTracker() {
     return () => { cancelled = true; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Persist on every rows change (debounced 800ms, skips initial load).
-  // Also tracks the latest rows so the unmount handler can flush them.
+  // ── Persist on every rows change (debounced 800ms) ────────────────────────
   useEffect(() => {
     if (!dataReady || rows === null || !serverOk) return;
     pendingRowsRef.current = rows;
@@ -267,8 +91,6 @@ export default function ProjectTracker() {
     return () => clearTimeout(t);
   }, [rows, dataReady, serverOk]);
 
-  // Flush any unsaved changes immediately when the component unmounts.
-  // This covers HMR hot-reloads, which cancel the debounced save above.
   useEffect(() => {
     return () => {
       if (hasPendingSave.current && pendingRowsRef.current) {
@@ -277,8 +99,6 @@ export default function ProjectTracker() {
     };
   }, []);
 
-  // Flush pending saves on page close/reload. useEffect cleanup does NOT run
-  // during a real page unload (only during HMR), so we need a pagehide listener.
   useEffect(() => {
     function flushOnPageHide() {
       if (hasPendingSave.current && pendingRowsRef.current) {
@@ -289,40 +109,65 @@ export default function ProjectTracker() {
     return () => window.removeEventListener('pagehide', flushOnPageHide);
   }, []);
 
-  // ── Computed Available ────────────────────────────────────────────────────
+  // ── Computed values ───────────────────────────────────────────────────────
   const computedAvailable = useMemo(() => computeAvailability(rows ?? []), [rows]);
-
-  // ── Computed Priority ─────────────────────────────────────────────────────
-  const computedPriority = useMemo(() => computePriority(rows ?? []), [rows]);
-
-  // ── Upward-Inherited Priority (Projects/Goals show min from children) ──────
+  const computedPriority  = useMemo(() => computePriority(rows ?? []), [rows]);
   const computedInheritedPriority = useMemo(
     () => computeUpwardInheritedPriority(rows ?? [], computedPriority),
     [rows, computedPriority],
   );
-
-  // ── Inherited Importance (Steps/Actions inherit from parent Project) ───────
   const computedImportance = useMemo(() => computeInheritedImportance(rows ?? []), [rows]);
 
-  // Focus input when editing starts
-  useEffect(() => {
-    if (editing && inputRef.current) {
-      inputRef.current.focus();
-      if (inputRef.current.select) inputRef.current.select();
+  // ── Left panel selection → index set for pre-filtering the main table ─────
+  //
+  // Area selected   → Area + all descendants
+  // Goal selected   → Goal + parent Area + all descendants
+  // Project selected→ Project + parent Goal + grandparent Area + all descendants
+  const lpIndices = useMemo(() => {
+    if (!rows || lpSelection.size === 0) return null;
+    const result = new Set();
+    for (const id of lpSelection) {
+      const idx = rows.findIndex(r => r.id === id);
+      if (idx === -1) continue;
+      const type = getType(rows[idx].depth);
+      if (type === 'Area') {
+        const [s, e] = subtreeRange(rows, idx);
+        for (let i = s; i < e; i++) result.add(i);
+      } else if (type === 'Goal') {
+        // parent Area
+        for (let j = idx - 1; j >= 0; j--) {
+          if (rows[j].depth === 0) { result.add(j); break; }
+        }
+        const [s, e] = subtreeRange(rows, idx);
+        for (let i = s; i < e; i++) result.add(i);
+      } else if (type === 'Project') {
+        // parent Goal
+        let goalIdx = -1;
+        for (let j = idx - 1; j >= 0; j--) {
+          if (rows[j].depth === 1) { goalIdx = j; break; }
+          if (rows[j].depth === 0) break;
+        }
+        if (goalIdx >= 0) {
+          result.add(goalIdx);
+          // grandparent Area
+          for (let j = goalIdx - 1; j >= 0; j--) {
+            if (rows[j].depth === 0) { result.add(j); break; }
+          }
+        }
+        const [s, e] = subtreeRange(rows, idx);
+        for (let i = s; i < e; i++) result.add(i);
+      }
     }
-  }, [editing, sel]);
+    return result;
+  }, [rows, lpSelection]);
 
-  // ── Visible rows (filtered) ──────────────────────────────────────────────
+  // ── Visible rows — left-panel pre-filter AND all main-table filters ────────
   const visible = useMemo(
-    () => computeVisible(rows ?? [], computedAvailable, computedPriority, filters),
-    [rows, computedAvailable, computedPriority, filters],
+    () => computeVisible(rows ?? [], computedAvailable, computedPriority, filters, lpIndices),
+    [rows, computedAvailable, computedPriority, filters, lpIndices],
   );
 
-  // ── Visible index set (for $ sum) ─────────────────────────────────────────
-  const visibleSet = useMemo(
-    () => new Set(visible.map(v => v.globalIdx)),
-    [visible],
-  );
+  const visibleSet = useMemo(() => new Set(visible.map(v => v.globalIdx)), [visible]);
 
   // ── Computed $ sums — only count visible Action descendants ───────────────
   const computedSums = useMemo(() => {
@@ -351,12 +196,12 @@ export default function ProjectTracker() {
     }
   }, [visible.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Scroll selected row into view
+  // Scroll selected main-table row into view
   useEffect(() => {
     document.getElementById(`row-${sel.r}`)?.scrollIntoView({ block: 'nearest' });
   }, [sel.r]);
 
-  // ── Cell update ──────────────────────────────────────────────────────────
+  // ── Cell update ───────────────────────────────────────────────────────────
   const updateCell = useCallback((id, col, val) => {
     setRows(prev =>
       prev.map(r => r.id === id
@@ -366,7 +211,7 @@ export default function ProjectTracker() {
     );
   }, []);
 
-  // ── Keyboard ─────────────────────────────────────────────────────────────
+  // ── Keyboard handling ─────────────────────────────────────────────────────
   const returnToTable = useCallback(() => {
     setFilterFocus(null);
     setSel(s => ({ ...s, r: 0 }));
@@ -374,16 +219,12 @@ export default function ProjectTracker() {
   }, []);
 
   const handleKeyDown = useCallback((e) => {
-    // Only process events fired directly on the container (i.e. when it has DOM focus).
-    // Events from filter controls or cell inputs bubble up but should be ignored here.
     if (e.target !== containerRef.current) return;
 
     const numRows = visible.length;
     if (numRows === 0) return;
 
     if (editing) {
-      // Only plain Enter exits edit mode; everything else (incl. Shift+Arrow) is left
-      // to the browser so text selection works normally.
       if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         setEditing(false);
@@ -396,20 +237,33 @@ export default function ProjectTracker() {
     const isCtrl  = e.ctrlKey || e.metaKey;
     const isShift = e.shiftKey;
 
-    // ── Plain arrow navigation (no modifier) ────────────────────────────────
+    // ── Plain arrow navigation ───────────────────────────────────────────────
     if (!isCtrl && !isShift) {
-      if      (e.key === 'ArrowDown')  { e.preventDefault(); setSel({ r: Math.min(r + 1, numRows - 1), c }); }
-      else if (e.key === 'ArrowUp') {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSel({ r: Math.min(r + 1, numRows - 1), c });
+      } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         if (r === 0) {
           setFilterFocus({ ctrl: 'area', subIdx: 0 });
         } else {
           setSel({ r: r - 1, c });
         }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setSel({ r, c: Math.min(c + 1, COL_ORDER.length - 1) });
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (c === 0) {
+          // Hand focus to the left panel
+          leftPanelRef.current?.focus();
+        } else {
+          setSel({ r, c: c - 1 });
+        }
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        setEditing(true);
       }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); setSel({ r, c: Math.min(c + 1, COL_ORDER.length - 1) }); }
-      else if (e.key === 'ArrowLeft')  { e.preventDefault(); setSel({ r, c: Math.max(c - 1, 0) }); }
-      else if (e.key === 'Enter')      { e.preventDefault(); setEditing(true); }
       return;
     }
 
@@ -417,15 +271,16 @@ export default function ProjectTracker() {
     if (isShift && !isCtrl && e.key.startsWith('Arrow')) {
       e.preventDefault();
       const { globalIdx, row } = visible[r];
+      const lpActive = lpIndices !== null;
 
       if (e.key === 'ArrowUp') {
-        // Move subtree above sibling immediately above
         let sibIdx = -1;
         for (let i = globalIdx - 1; i >= 0; i--) {
           if (rows[i].depth === row.depth) { sibIdx = i; break; }
           if (rows[i].depth < row.depth) break;
         }
         if (sibIdx === -1) return;
+        if (lpActive && !lpIndices.has(sibIdx)) { flashRow(row.id); return; }
         const [ourStart, ourEnd] = subtreeRange(rows, globalIdx);
         const [sibStart, sibEnd] = subtreeRange(rows, sibIdx);
         setRows(prev => recomputeStructure([
@@ -438,9 +293,9 @@ export default function ProjectTracker() {
         setSel(s => ({ ...s, r: s.r - sibVisCount }));
 
       } else if (e.key === 'ArrowDown') {
-        // Move subtree below sibling immediately below
         const [ourStart, ourEnd] = subtreeRange(rows, globalIdx);
         if (ourEnd >= rows.length || rows[ourEnd].depth !== row.depth) return;
+        if (lpActive && !lpIndices.has(ourEnd)) { flashRow(row.id); return; }
         const [sibStart, sibEnd] = subtreeRange(rows, ourEnd);
         setRows(prev => recomputeStructure([
           ...prev.slice(0, ourStart),
@@ -452,7 +307,6 @@ export default function ProjectTracker() {
         setSel(s => ({ ...s, r: s.r + sibVisCount }));
 
       } else if (e.key === 'ArrowRight') {
-        // Indent: subtree becomes children of sibling immediately above
         if (row.depth >= 4) return;
         let sibIdx = -1;
         for (let i = globalIdx - 1; i >= 0; i--) {
@@ -460,14 +314,25 @@ export default function ProjectTracker() {
           if (rows[i].depth < row.depth) break;
         }
         if (sibIdx === -1) return;
+        if (lpActive && !lpIndices.has(sibIdx)) { flashRow(row.id); return; }
         const [start, end] = subtreeRange(rows, globalIdx);
         setRows(prev => recomputeStructure(
           prev.map((rr, i) => i >= start && i < end ? { ...rr, depth: rr.depth + 1 } : rr)
         ));
 
       } else if (e.key === 'ArrowLeft') {
-        // Outdent: subtree becomes siblings of current parent
         if (row.depth === 0) return;
+        if (lpActive && row.depth >= 2) {
+          // Find grandparent — new container after outdent
+          let grandparentIdx = -1;
+          for (let j = globalIdx - 1; j >= 0; j--) {
+            if (rows[j].depth === row.depth - 2) { grandparentIdx = j; break; }
+            if (rows[j].depth < row.depth - 2) break;
+          }
+          if (grandparentIdx >= 0 && !lpIndices.has(grandparentIdx)) {
+            flashRow(row.id); return;
+          }
+        }
         const [start, end] = subtreeRange(rows, globalIdx);
         setRows(prev => recomputeStructure(
           prev.map((rr, i) => i >= start && i < end ? { ...rr, depth: rr.depth - 1 } : rr)
@@ -482,29 +347,36 @@ export default function ProjectTracker() {
       const { row, globalIdx } = visible[r];
       const [, ourEnd] = subtreeRange(rows, globalIdx);
       const visInSubtree = visible.filter(v => v.globalIdx >= globalIdx && v.globalIdx < ourEnd).length;
+      const lpActive = lpIndices !== null;
 
       if (e.key === 'ArrowRight') {
-        // New child as last child (depth+1)
         if (row.depth >= 4) return;
         const newRow = makeRow(row.depth + 1, row.id, 0);
         setRows(prev => { const next = [...prev]; next.splice(ourEnd, 0, newRow); return recomputeStructure(next); });
         setTimeout(() => { setSel({ r: r + visInSubtree, c: 0 }); setEditing(true); }, 0);
 
       } else if (e.key === 'ArrowDown') {
-        // New sibling below entire subtree (same depth)
         const newRow = makeRow(row.depth, row.parent_id, row.position + 1);
         setRows(prev => { const next = [...prev]; next.splice(ourEnd, 0, newRow); return recomputeStructure(next); });
         setTimeout(() => { setSel({ r: r + visInSubtree, c: 0 }); setEditing(true); }, 0);
 
       } else if (e.key === 'ArrowUp') {
-        // New sibling immediately above (same depth)
         const newRow = makeRow(row.depth, row.parent_id, row.position);
         setRows(prev => { const next = [...prev]; next.splice(globalIdx, 0, newRow); return recomputeStructure(next); });
         setTimeout(() => { setSel({ r, c: 0 }); setEditing(true); }, 0);
 
       } else if (e.key === 'ArrowLeft') {
-        // New row after subtree, outdented one level (depth-1)
         if (row.depth === 0) return;
+        if (lpActive && row.depth >= 2) {
+          let grandparentIdx = -1;
+          for (let j = globalIdx - 1; j >= 0; j--) {
+            if (rows[j].depth === row.depth - 2) { grandparentIdx = j; break; }
+            if (rows[j].depth < row.depth - 2) break;
+          }
+          if (grandparentIdx >= 0 && !lpIndices.has(grandparentIdx)) {
+            flashRow(row.id); return;
+          }
+        }
         const newRow = makeRow(row.depth - 1, row.parent_id, 0);
         setRows(prev => { const next = [...prev]; next.splice(ourEnd, 0, newRow); return recomputeStructure(next); });
         setTimeout(() => { setSel({ r: r + visInSubtree, c: 0 }); setEditing(true); }, 0);
@@ -512,7 +384,7 @@ export default function ProjectTracker() {
       return;
     }
 
-    // ── Ctrl+Delete — delete row and subtree ─────────────────────────────────
+    // ── Ctrl+Delete — delete row and subtree ──────────────────────────────────
     if (isCtrl && e.key === 'Delete') {
       e.preventDefault();
       const { globalIdx } = visible[r];
@@ -523,7 +395,7 @@ export default function ProjectTracker() {
       setSel(s => ({ ...s, r: Math.max(0, s.r - 1) }));
       return;
     }
-  }, [editing, sel, visible, rows]);
+  }, [editing, sel, visible, rows, lpIndices, flashRow]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -547,17 +419,14 @@ export default function ProjectTracker() {
     );
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div
-      ref={containerRef}
-      tabIndex={0}
-      style={{
-        fontFamily: "'DM Mono','Fira Code',monospace",
-        height: '100vh', display: 'flex', flexDirection: 'column',
-        background: '#0f1117', outline: 'none', userSelect: 'none',
-      }}
-    >
+    <div style={{
+      fontFamily: "'DM Mono','Fira Code',monospace",
+      height: '100vh', display: 'flex', flexDirection: 'column',
+      background: '#0f1117', userSelect: 'none',
+    }}>
+
       {/* ── Top bar ── */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 16,
@@ -590,209 +459,54 @@ export default function ProjectTracker() {
         </div>
       </div>
 
-      {/* ── Filter bar ── */}
-      <FilterBar
-        filters={filters}
-        onChange={setFilters}
-        rows={rows}
-        filterFocus={filterFocus}
-        onFilterFocusChange={setFilterFocus}
-        onReturnToTable={returnToTable}
-        navMode={!editing}
-      />
+      {/* ── Body: left panel + right (filter bar + table) ── */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-      {/* ── Column headers — permanent ── */}
-      <div style={{ display: 'flex', background: '#1a1d2e', borderBottom: '2px solid #2d3149', flexShrink: 0 }}>
-        {COL_WIDTHS.map((w, i) => (
-          <div key={i} style={{
-            width: w, minWidth: w, padding: '6px 10px',
-            fontSize: 12, fontWeight: 700, color: '#64748b',
-            textTransform: 'uppercase', letterSpacing: '0.8px',
-            borderRight: '1px solid #2d3149', boxSizing: 'border-box', overflow: 'hidden',
-          }}>
-            {COL_HEADERS[i]}
-          </div>
-        ))}
-      </div>
+        {/* Left panel */}
+        <LeftPanel
+          rows={rows}
+          selectedIds={lpSelection}
+          onSelectionChange={setLpSelection}
+          onMoveToTable={() => containerRef.current?.focus()}
+          panelRef={leftPanelRef}
+        />
 
-      {/* ── Rows ── */}
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
-        <div style={{ minWidth: COL_WIDTHS.reduce((a, b) => a + b, 0) }}>
-          {visible.map(({ row, globalIdx }, rowIdx) => {
-            const type     = getType(row.depth);
-            const defs     = COL_DEFS[type];
-            const isSelRow = sel.r === rowIdx;
+        {/* Right side: filter bar + main table */}
+        <div
+          ref={containerRef}
+          tabIndex={0}
+          style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            overflow: 'hidden', outline: 'none',
+          }}
+        >
+          <FilterBar
+            filters={filters}
+            onChange={setFilters}
+            rows={rows}
+            filterFocus={filterFocus}
+            onFilterFocusChange={setFilterFocus}
+            onReturnToTable={returnToTable}
+            navMode={!editing}
+          />
 
-            const rowBg = isSelRow ? '#1e3a5f'
-              : type === 'Area'    ? '#12151f'
-              : type === 'Goal'    ? '#161b2e'
-              : type === 'Project' ? '#1a2035'
-              : type === 'Step'    ? '#1d2133'
-              :                      '#1e2238';
-
-            const PROJECT_BRACKET_COLOR = '#2e3f6a';
-            const isProjectRow = type === 'Project';
-            const nextRow = visible[rowIdx + 1];
-            const isLastProjectDescendant = row.depth >= 2 && (!nextRow || nextRow.row.depth < 2);
-
-            return (
-              <div
-                id={`row-${rowIdx}`}
-                key={row.id}
-                style={{
-                  display: 'flex',
-                  borderTop: isProjectRow ? `1px solid ${PROJECT_BRACKET_COLOR}` : undefined,
-                  borderBottom: isLastProjectDescendant
-                    ? `1px solid ${PROJECT_BRACKET_COLOR}`
-                    : `1px solid ${isSelRow ? '#2d4a6e' : '#1e2235'}`,
-                  background: rowBg, transition: 'background 0.1s',
-                }}
-                onMouseDown={() => {
-                  setSel({ r: rowIdx, c: sel.c });
-                  setEditing(false);
-                  setFilterFocus(null);
-                  containerRef.current?.focus();
-                }}
-              >
-                {COL_WIDTHS.map((w, colIdx) => {
-                  const def = defs[colIdx];
-
-                  // Resolve display value — computed fields override stored
-                  const dataIdx = COL_ORDER[colIdx];
-                  const isInheritedPriorityRow = type === 'Project' || type === 'Goal';
-                  const displayVal =
-                    def.type === 'currency_sum' ? (computedSums[row.id] ?? 0)
-                    : def.type === 'available'  ? (computedAvailable[row.id] ?? '')
-                    : def.type === 'priority'   ? (isInheritedPriorityRow
-                                                    ? (computedInheritedPriority[row.id] ?? '')
-                                                    : (computedPriority[row.id] ?? ''))
-                    : def.type === 'id'         ? row.id
-                    : (def.readonly && def.type === 'dropdown' && dataIdx === 2 && (type === 'Step' || type === 'Action'))
-                                                ? (computedImportance[row.id] ?? '')
-                    : row.values[dataIdx];
-
-                  const isSelCell  = isSelRow && sel.c === colIdx;
-                  const isEditCell = isSelCell && editing && !def.readonly && def.type !== 'empty';
-
-                  return (
-                    <div
-                      key={colIdx}
-                      onMouseDown={e => {
-                        e.stopPropagation();
-                        setSel({ r: rowIdx, c: colIdx });
-                        setEditing(false);
-                        containerRef.current?.focus();
-                      }}
-                      onDoubleClick={e => {
-                        e.stopPropagation();
-                        if (!def.readonly) { setSel({ r: rowIdx, c: colIdx }); setEditing(true); }
-                      }}
-                      style={{
-                        width: w, minWidth: w, boxSizing: 'border-box',
-                        padding: colIdx === 0
-                          ? `5px 8px 5px ${8 + row.depth * INDENT_PX}px`
-                          : '5px 10px',
-                        borderRight: '1px solid #1e2235',
-                        fontSize: 15, color: '#cbd5e1',
-                        outline: isSelCell
-                          ? `2px solid ${isEditCell ? '#60a5fa' : '#3b82f6'}`
-                          : 'none',
-                        outlineOffset: -2,
-                        background: isEditCell ? '#0d1117' : 'transparent',
-                        overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
-                        display: 'flex', alignItems: 'center', gap: 6, cursor: 'default',
-                      }}
-                    >
-                      {/* Type badge — col1 only */}
-                      {colIdx === 0 && (
-                        <span style={{
-                          flexShrink: 0, fontSize: 10, fontWeight: 800, letterSpacing: 0.5,
-                          background: TYPE_BADGE_COLOR[type], color: '#fff',
-                          borderRadius: 2, padding: '2px 5px', textTransform: 'uppercase',
-                        }}>
-                          {type[0]}
-                        </span>
-                      )}
-
-                      {/* Edit mode */}
-                      {isEditCell ? (
-                        def.type === 'dropdown' || def.type === 'status' ? (
-                          <select
-                            ref={inputRef}
-                            value={row.values[dataIdx]}
-                            onChange={e => updateCell(row.id, dataIdx, e.target.value)}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter') { e.preventDefault(); setEditing(false); containerRef.current?.focus(); }
-                              e.stopPropagation();
-                            }}
-                            style={{
-                              flex: 1, background: '#0d1117', border: 'none',
-                              outline: 'none', color: '#e2e8f0', fontSize: 15,
-                              fontFamily: 'inherit', cursor: 'pointer',
-                            }}
-                          >
-                            {def.options.map(o => (
-                              <option key={o} value={o}>{o || '(none)'}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            ref={inputRef}
-                            type={def.type === 'date' ? 'date' : 'text'}
-                            placeholder={
-                              def.type === 'time' ? 'HH:MM'
-                              : def.type === 'week' ? 'WW-YY'
-                              : undefined
-                            }
-                            value={row.values[dataIdx]}
-                            onChange={e => updateCell(row.id, dataIdx, e.target.value)}
-                            onBlur={e => {
-                              if (def.type === 'week' && !isValidWeek(e.target.value)) {
-                                updateCell(row.id, dataIdx, '');
-                              }
-                            }}
-                            onKeyDown={e => {
-                              e.stopPropagation();
-                              if (e.key === 'Enter') {
-                                if (def.type === 'week' && !isValidWeek(row.values[dataIdx])) {
-                                  updateCell(row.id, dataIdx, '');
-                                }
-                                e.preventDefault();
-                                setEditing(false);
-                                containerRef.current?.focus();
-                              }
-                            }}
-                            style={{
-                              flex: 1, background: 'transparent', border: 'none',
-                              outline: 'none', color: '#e2e8f0', fontSize: 15,
-                              fontFamily: 'inherit', minWidth: 0,
-                            }}
-                          />
-                        )
-                      ) : (
-                        /* Display mode */
-                        <span style={{
-                          overflow: 'hidden', textOverflow: 'ellipsis', flex: 1,
-                          fontWeight: colIdx === 0 && (type === 'Area' || type === 'Goal') ? 700 : 400,
-                          color: colIdx === 0 && (type === 'Area' || type === 'Goal') ? '#94a3b8'
-                               : colIdx === 0 ? '#e2e8f0'
-                               : '#94a3b8',
-                        }}>
-                          <CellDisplay val={displayVal} def={def} inherited={
-                            (def.type === 'priority' && isInheritedPriorityRow) ||
-                            (def.type === 'dropdown' && dataIdx === 2 && (type === 'Step' || type === 'Action'))
-                          } />
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-          <div style={{ padding: '10px 20px', color: '#2d3149', fontSize: 12 }}>
-            <span style={{ fontSize: 14 }}>Ctrl+↓ new sibling · Ctrl+→ new child</span>
-          </div>
+          <MainTable
+            rows={rows}
+            visible={visible}
+            sel={sel}
+            editing={editing}
+            containerRef={containerRef}
+            updateCell={updateCell}
+            setSel={setSel}
+            setEditing={setEditing}
+            setFilterFocus={setFilterFocus}
+            computedAvailable={computedAvailable}
+            computedPriority={computedPriority}
+            computedInheritedPriority={computedInheritedPriority}
+            computedImportance={computedImportance}
+            computedSums={computedSums}
+            flashedRowId={flashedRowId}
+          />
         </div>
       </div>
 
@@ -804,8 +518,20 @@ export default function ProjectTracker() {
       }}>
         <span>Row <span style={{ color: '#94a3b8' }}>{sel.r + 1}</span> / {visible.length}</span>
         <span>Type: <span style={{ color: TYPE_BADGE_COLOR[selType], fontWeight: 700 }}>{selType}</span></span>
-        {visible.length < rows.length && (
+        {visible.length < (rows?.length ?? 0) && (
           <span>Filtered: <span style={{ color: '#60a5fa' }}>{visible.length}</span> of {rows.length}</span>
+        )}
+        {lpSelection.size > 0 && (
+          <span>
+            Panel: <span style={{ color: '#7c3aed', fontWeight: 700 }}>{lpSelection.size}</span> selected
+            {' · '}
+            <span
+              style={{ color: '#475569', cursor: 'pointer', textDecoration: 'underline' }}
+              onMouseDown={() => setLpSelection(new Set())}
+            >
+              clear
+            </span>
+          </span>
         )}
         <span style={{ marginLeft: 'auto', color: editing ? '#60a5fa' : '#475569' }}>
           {editing ? '✏ EDIT' : '⌨ NAV'}

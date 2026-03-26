@@ -512,7 +512,7 @@ export function computeUpwardInheritedPriority(rows, computedPriority) {
  * Ancestors of rows passing a filter are added for context, but only within the
  * current candidate set (so the Area filter cannot be bypassed).
  */
-export function computeVisible(rows, available, priorityMap, filters) {
+export function computeVisible(rows, available, priorityMap, filters, initialIndices = null) {
   const { area, types, nextAction, priority, iu, date, search } = filters;
 
   function getPriorityBucket(priorityStr) {
@@ -535,8 +535,8 @@ export function computeVisible(rows, available, priorityMap, filters) {
     }
   }
 
-  // Start with all row indices.
-  let indices = new Set(rows.map((_, i) => i));
+  // Start with supplied pre-filter set, or all row indices.
+  let indices = initialIndices ? new Set(initialIndices) : new Set(rows.map((_, i) => i));
 
   // ── Filter 1: Area ────────────────────────────────────────────────────────
   if (area) {
