@@ -410,7 +410,7 @@ export default function ProjectTracker() {
   if (!dataReady) {
     return (
       <div style={{
-        height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: '#0f1117', fontFamily: "'DM Mono','Fira Code',monospace",
         color: '#475569', fontSize: 15,
       }}>
@@ -423,7 +423,7 @@ export default function ProjectTracker() {
   return (
     <div style={{
       fontFamily: "'DM Mono','Fira Code',monospace",
-      height: '100vh', display: 'flex', flexDirection: 'column',
+      height: '100%', display: 'flex', flexDirection: 'column',
       background: '#0f1117', userSelect: 'none',
     }}>
 
