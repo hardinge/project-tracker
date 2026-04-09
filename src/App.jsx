@@ -5,8 +5,8 @@ import NowTab from './NowTab.jsx';
 
 const TABS = [
   { id: 'now',      label: 'Now' },
-  { id: 'week',     label: 'Week' },
   { id: 'database', label: 'Database' },
+  { id: 'week',     label: 'Week' },
   { id: 'view3',    label: 'View 3' },
 ];
 

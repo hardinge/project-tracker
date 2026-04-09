@@ -7,10 +7,10 @@ export const SLOTS = 68;
 export const START_MINUTES = 5 * 60;
 
 /** Pixel height of one 15-min slot row */
-export const SLOT_H = 22;
+export const SLOT_H = 11;
 
 /** Pixel width of the fixed time-label column */
-export const TIME_COL_W = 58;
+export const TIME_COL_W = 35;
 
 /** Pixel width of each sub-column (HS / BM / Base / Revised …) */
 export const SUB_COL_W = 90;
@@ -28,7 +28,7 @@ export const WEEK_SUB_COLS = ['HS', 'BM'];
 
 // ─── Category palette ──────────────────────────────────────────────────────
 
-export const CATEGORIES = ['Work', 'Health', 'Admin', 'Chores', 'Kids', 'Fun'];
+export const CATEGORIES = ['Work', 'Health', 'Admin', 'Chores', 'Kids', 'Fun', 'No'];
 
 const CAT_BG = {
   Work:   '#172554',
@@ -36,7 +36,8 @@ const CAT_BG = {
   Admin:  '#422006',
   Chores: '#431407',
   Kids:   '#2e1065',
-  Fun:    '#500724',
+  Fun:    '#134e4a',
+  No:     '#7f1d1d',
 };
 
 const CAT_TEXT = {
@@ -45,7 +46,8 @@ const CAT_TEXT = {
   Admin:  '#fde68a',
   Chores: '#fdba74',
   Kids:   '#d8b4fe',
-  Fun:    '#f9a8d4',
+  Fun:    '#5eead4',
+  No:     '#fca5a5',
 };
 
 export function catBg(category)   { return CAT_BG[category]   ?? '#1a1d2e'; }
