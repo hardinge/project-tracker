@@ -96,3 +96,61 @@ export function linkedLabel(item, allRows) {
 // Week tab: 0=Sat, 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri
 // JS Date.getDay(): 0=Sun … 6=Sat
 export function jsDayToWeekDay(jsDay) { return (jsDay + 1) % 7; }
+
+// ─── Overlap layout helpers ────────────────────────────────────────────────
+
+/** True if two blocks share at least one slot */
+function blocksOverlap(a, b) {
+  return a.start_slot < b.end_slot && b.start_slot < a.end_slot;
+}
+
+/**
+ * Compute side-by-side overlap layout for a list of blocks in one sub-column.
+ * Returns each block augmented with { lane, laneCount } where:
+ *   lane      – 0-based index of the horizontal position (0 = leftmost)
+ *   laneCount – total number of lanes in this block's overlap group (1, 2, or 3)
+ *
+ * Sorting: earlier start_slot first; ties broken by created_at oldest first.
+ */
+export function computeOverlapLayout(blocks) {
+  if (blocks.length === 0) return [];
+
+  // Sort: earlier start first, then older creation first (leftmost)
+  const sorted = [...blocks].sort((a, b) => {
+    if (a.start_slot !== b.start_slot) return a.start_slot - b.start_slot;
+    return (a.created_at || 0) - (b.created_at || 0);
+  });
+
+  // Assign each block the smallest available lane not taken by any overlapping block
+  const laneMap = new Map();
+  for (const block of sorted) {
+    const usedLanes = new Set(
+      sorted
+        .filter(b => b.id !== block.id && blocksOverlap(b, block) && laneMap.has(b.id))
+        .map(b => laneMap.get(b.id))
+    );
+    let lane = 0;
+    while (usedLanes.has(lane)) lane++;
+    laneMap.set(block.id, lane);
+  }
+
+  // laneCount for a block = (max lane across all mutually overlapping blocks) + 1
+  return sorted.map(block => {
+    const overlapping = sorted.filter(b => b.id !== block.id && blocksOverlap(b, block));
+    const allLanes = [laneMap.get(block.id), ...overlapping.map(b => laneMap.get(b.id))];
+    const laneCount = Math.max(...allLanes) + 1;
+    return { ...block, lane: laneMap.get(block.id), laneCount };
+  });
+}
+
+/**
+ * Returns true if placing a block with [start_slot, end_slot) in the given
+ * list of existing same-column blocks would push any slot to 4+ simultaneous blocks.
+ */
+export function wouldExceedOverlapLimit(newBlock, existingBlocks) {
+  for (let slot = newBlock.start_slot; slot < newBlock.end_slot; slot++) {
+    const count = existingBlocks.filter(b => b.start_slot <= slot && b.end_slot > slot).length;
+    if (count >= 3) return true;
+  }
+  return false;
+}

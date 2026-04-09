@@ -39,8 +39,14 @@ db.exec(`
     end_slot   INTEGER NOT NULL,
     label      TEXT    NOT NULL DEFAULT '',
     category   TEXT,
-    linked_id  TEXT
+    linked_id  TEXT,
+    created_at INTEGER NOT NULL DEFAULT 0
   )
 `);
+
+// Migrate existing tables that predate the created_at column
+try {
+  db.exec('ALTER TABLE blocks ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0');
+} catch (_) { /* column already exists */ }
 
 export default db;
