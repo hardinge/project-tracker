@@ -29,4 +29,18 @@ db.exec(`
   WHERE json_extract(values_json, '$[12]') = 'Deferred'
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS blocks (
+    id         TEXT    PRIMARY KEY,
+    tab        TEXT    NOT NULL,
+    day        INTEGER NOT NULL,
+    sub_col    TEXT    NOT NULL,
+    start_slot INTEGER NOT NULL,
+    end_slot   INTEGER NOT NULL,
+    label      TEXT    NOT NULL DEFAULT '',
+    category   TEXT,
+    linked_id  TEXT
+  )
+`);
+
 export default db;

@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import ProjectTracker from './ProjectTracker.jsx';
+import WeekTab from './WeekTab.jsx';
+import NowTab from './NowTab.jsx';
 
 const TABS = [
-  { id: 'view1',    label: 'View 1' },
+  { id: 'now',      label: 'Now' },
+  { id: 'week',     label: 'Week' },
   { id: 'database', label: 'Database' },
-  { id: 'view2',    label: 'View 2' },
   { id: 'view3',    label: 'View 3' },
 ];
 
 const TAB_H = 34;
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('database');
+  const [activeTab, setActiveTab] = useState('now');
 
   return (
     <div style={{
@@ -31,10 +33,12 @@ export default function App() {
           >
             {tab.id === 'database' ? (
               <ProjectTracker />
+            ) : tab.id === 'week' ? (
+              <WeekTab />
+            ) : tab.id === 'now' ? (
+              <NowTab />
             ) : (
-              <div style={{
-                flex: 1, background: '#0f1117',
-              }} />
+              <div style={{ flex: 1, background: '#0f1117' }} />
             )}
           </div>
         ))}

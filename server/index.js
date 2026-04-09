@@ -3,6 +3,7 @@ import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import rowsRouter from './rows.js';
+import blocksRouter from './blocks.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -11,6 +12,7 @@ const PORT = process.env.PORT || 3001;
 app.use(express.json());
 
 app.use('/api/rows', rowsRouter);
+app.use('/api/blocks', blocksRouter);
 
 // Serve Vite production build
 app.use(express.static(join(__dirname, '../dist')));
