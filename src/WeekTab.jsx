@@ -122,6 +122,11 @@ function parseBlockLabel(block) {
     if (sep !== -1) {
       return { mainTitle: block.label.slice(0, sep), parentName: block.label.slice(sep + 3) };
     }
+    // Strip legacy "[prefix8] itemName" format — show only the item title
+    const legacy = block.label.match(/^\[[^\]]{0,8}\] ([\s\S]*)$/);
+    if (legacy) {
+      return { mainTitle: legacy[1], parentName: null };
+    }
   }
   return { mainTitle: block.label || '', parentName: null };
 }
