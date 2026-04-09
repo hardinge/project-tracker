@@ -21,14 +21,16 @@ const TOTAL_W = TIME_COL_W + WEEK_DAYS.length * WEEK_SUB_COLS.length * SUB_COL_W
 
 // ─── Colour constants ────────────────────────────────────────────────────────
 
-const BG         = '#0f1117';
-const PANEL      = '#12151f';
-const BORDER_H   = '#2d3149';   // hour line
-const BORDER_Q   = '#1e2235';   // 15-min line
-const HDR_BG     = '#0a0c14';
-const HDR_TEXT   = '#94a3b8';
-const TIME_TEXT  = '#475569';
-const ACTIVE_COL = 'rgba(255,255,255,0.03)';
+const BG          = '#0f1117';
+const PANEL       = '#12151f';
+const BORDER_H    = '#2d3149';   // hour line
+const BORDER_Q    = '#1e2235';   // 15-min line
+const BORDER_GROUP = '#4a5878';  // day-group separator (clearly brighter)
+const HDR_BG      = '#0a0c14';
+const HDR_TEXT    = '#94a3b8';
+const TIME_TEXT   = '#7a90b0';   // brighter hour labels
+const ACTIVE_COL  = 'rgba(255,255,255,0.03)';
+const WEEKEND_BG  = '#141c2e';   // subtle lighter bg for weekend + off-hours slots
 
 // ─── Sub-component: TimeColumn ───────────────────────────────────────────────
 
@@ -68,9 +70,14 @@ function TimeColumn() {
 
 // ─── Sub-component: SubColumn ─────────────────────────────────────────────
 
-function SubColumn({ dayIdx, subCol, blocks, pendingClick, actionMode, onSlotClick, onBlockClick }) {
+// Slot 0 = 5am. 7am = slot 8, 5pm = slot 48.
+const isWeekend = (dayIdx) => dayIdx <= 1;  // 0=Sat, 1=Sun
+const isOffHours = (s) => s < 8 || s >= 48;
+
+function SubColumn({ dayIdx, subCol, blocks, pendingClick, actionMode, onSlotClick, onBlockClick, isLastInDay }) {
   const isPending = pendingClick && pendingClick.day === dayIdx && pendingClick.subCol === subCol;
   const isActionTarget = actionMode && actionMode.day === dayIdx && actionMode.subCol === subCol;
+  const weekend = isWeekend(dayIdx);
 
   return (
     <div style={{
@@ -87,10 +94,11 @@ function SubColumn({ dayIdx, subCol, blocks, pendingClick, actionMode, onSlotCli
           style={{
             height: SLOT_H,
             borderBottom: `1px solid ${isHourSlot(s + 1) ? BORDER_H : BORDER_Q}`,
-            borderRight: `1px solid ${BORDER_Q}`,
+            borderRight: `1px solid ${isLastInDay ? BORDER_GROUP : BORDER_Q}`,
             boxSizing: 'border-box',
             background: isPending && pendingClick.slot === s
-              ? 'rgba(99,102,241,0.25)' : 'transparent',
+              ? 'rgba(99,102,241,0.25)'
+              : (weekend || isOffHours(s)) ? WEEKEND_BG : 'transparent',
           }}
         />
       ))}
@@ -675,7 +683,7 @@ export default function WeekTab() {
                   height: HEADER_H / 2, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, fontWeight: 700, color: '#e2e8f0',
                   fontFamily: "'DM Mono','Fira Code',monospace",
-                  borderRight: `1px solid ${BORDER_H}`,
+                  borderRight: `1px solid ${BORDER_GROUP}`,
                   width: SUB_COL_W * WEEK_SUB_COLS.length,
                   borderBottom: `1px solid ${BORDER_Q}`,
                 }}>
@@ -683,13 +691,13 @@ export default function WeekTab() {
                 </div>
                 {/* Sub-col headers */}
                 <div style={{ display: 'flex' }}>
-                  {WEEK_SUB_COLS.map(sc => (
+                  {WEEK_SUB_COLS.map((sc, si) => (
                     <div key={sc} style={{
                       width: SUB_COL_W, height: HEADER_H / 2,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 11, color: HDR_TEXT,
                       fontFamily: "'DM Mono','Fira Code',monospace",
-                      borderRight: `1px solid ${BORDER_Q}`,
+                      borderRight: `1px solid ${si === WEEK_SUB_COLS.length - 1 ? BORDER_GROUP : BORDER_Q}`,
                     }}>
                       {sc}
                     </div>
@@ -704,7 +712,7 @@ export default function WeekTab() {
             <TimeColumn />
             {/* Day sub-columns */}
             {WEEK_DAYS.map((_, di) =>
-              WEEK_SUB_COLS.map(sc => (
+              WEEK_SUB_COLS.map((sc, si) => (
                 <SubColumn
                   key={`${di}-${sc}`}
                   dayIdx={di}
@@ -714,6 +722,7 @@ export default function WeekTab() {
                   actionMode={actionMode}
                   onSlotClick={handleSlotClick}
                   onBlockClick={handleBlockClick}
+                  isLastInDay={si === WEEK_SUB_COLS.length - 1}
                 />
               ))
             )}

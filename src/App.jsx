@@ -14,6 +14,7 @@ const TAB_H = 34;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('now');
+  const [rowInfo, setRowInfo]     = useState({ rowNum: 1, total: 0, selType: 'Area', typeColor: '#e94560' });
 
   return (
     <div style={{
@@ -32,7 +33,7 @@ export default function App() {
             }}
           >
             {tab.id === 'database' ? (
-              <ProjectTracker />
+              <ProjectTracker onRowInfoChange={setRowInfo} />
             ) : tab.id === 'week' ? (
               <WeekTab />
             ) : tab.id === 'now' ? (
@@ -82,6 +83,25 @@ export default function App() {
             </button>
           );
         })}
+
+        {/* Row number + type callout — shown only on the Database tab */}
+        {activeTab === 'database' && (
+          <div style={{
+            marginLeft: 'auto', alignSelf: 'center',
+            display: 'flex', alignItems: 'center', gap: 14,
+            fontSize: 12, fontFamily: "'DM Mono','Fira Code',monospace",
+            paddingRight: 8,
+          }}>
+            <span style={{ color: '#475569' }}>
+              Row <span style={{ color: '#94a3b8' }}>{rowInfo.rowNum}</span>
+              {' / '}{rowInfo.total}
+            </span>
+            <span style={{ color: '#475569' }}>
+              Type:{' '}
+              <span style={{ color: rowInfo.typeColor, fontWeight: 700 }}>{rowInfo.selType}</span>
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

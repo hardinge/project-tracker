@@ -24,13 +24,14 @@ const NOW_SUB_COL_W = SUB_COL_W * 2;   // double width for Now tab columns
 
 const TOTAL_W = TIME_COL_W + NOW_GROUPS.length * NOW_SUBS.length * NOW_SUB_COL_W;
 
-const BG        = '#0f1117';
-const PANEL     = '#12151f';
-const BORDER_H  = '#2d3149';
-const BORDER_Q  = '#1e2235';
-const HDR_BG    = '#0a0c14';
-const HDR_TEXT  = '#94a3b8';
-const TIME_TEXT = '#475569';
+const BG           = '#0f1117';
+const PANEL        = '#12151f';
+const BORDER_H     = '#2d3149';
+const BORDER_Q     = '#1e2235';
+const BORDER_GROUP = '#4a5878';  // group separator (clearly brighter)
+const HDR_BG       = '#0a0c14';
+const HDR_TEXT     = '#94a3b8';
+const TIME_TEXT    = '#7a90b0';  // brighter hour labels
 const READONLY_OVERLAY = 'rgba(0,0,0,0.15)';
 
 // ─── Midnight rotation helper ─────────────────────────────────────────────────
@@ -81,7 +82,7 @@ function TimeColumn() {
 
 // ─── Sub-component: SubColumn ─────────────────────────────────────────────────
 
-function SubColumn({ groupIdx, subColName, blocks, readOnly, pendingClick, actionMode, onSlotClick, onBlockClick }) {
+function SubColumn({ groupIdx, subColName, blocks, readOnly, pendingClick, actionMode, onSlotClick, onBlockClick, isLastInGroup }) {
   const isPending      = !readOnly && pendingClick
     && pendingClick.group === groupIdx && pendingClick.subCol === subColName;
   const isActionTarget = !readOnly && actionMode
@@ -100,7 +101,7 @@ function SubColumn({ groupIdx, subColName, blocks, readOnly, pendingClick, actio
           style={{
             height: SLOT_H,
             borderBottom: `1px solid ${isHourSlot(s + 1) ? BORDER_H : BORDER_Q}`,
-            borderRight: `1px solid ${BORDER_Q}`,
+            borderRight: `1px solid ${isLastInGroup ? BORDER_GROUP : BORDER_Q}`,
             boxSizing: 'border-box',
             background: isPending && pendingClick.slot === s ? 'rgba(99,102,241,0.25)' : 'transparent',
           }}
@@ -664,21 +665,21 @@ export default function NowTab() {
                   height: HEADER_H / 2, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 12, fontWeight: 700, color: '#e2e8f0',
                   fontFamily: "'DM Mono','Fira Code',monospace",
-                  borderRight: `1px solid ${BORDER_H}`,
+                  borderRight: `1px solid ${BORDER_GROUP}`,
                   width: NOW_SUB_COL_W * NOW_SUBS.length,
                   borderBottom: `1px solid ${BORDER_Q}`,
                 }}>
                   {grpName}
                 </div>
                 <div style={{ display: 'flex' }}>
-                  {NOW_SUBS.map(sc => (
+                  {NOW_SUBS.map((sc, si) => (
                     <div key={sc} style={{
                       width: NOW_SUB_COL_W, height: HEADER_H / 2,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 11,
                       color: sc === 'Revised' ? '#e2e8f0' : HDR_TEXT,
                       fontFamily: "'DM Mono','Fira Code',monospace",
-                      borderRight: `1px solid ${BORDER_Q}`,
+                      borderRight: `1px solid ${si === NOW_SUBS.length - 1 ? BORDER_GROUP : BORDER_Q}`,
                     }}>
                       {sc}
                       {sc === 'Import' && <span style={{ fontSize: 9, color: '#475569', marginLeft: 3 }}>(soon)</span>}
@@ -693,7 +694,7 @@ export default function NowTab() {
           <div style={{ display: 'flex' }}>
             <TimeColumn />
             {NOW_GROUPS.map((_, gi) =>
-              NOW_SUBS.map(sc => {
+              NOW_SUBS.map((sc, si) => {
                 const readOnly = sc !== 'Revised';
                 return (
                   <SubColumn
@@ -706,6 +707,7 @@ export default function NowTab() {
                     actionMode={actionMode}
                     onSlotClick={handleSlotClick}
                     onBlockClick={(e, b) => handleBlockClick(e, b, gi)}
+                    isLastInGroup={si === NOW_SUBS.length - 1}
                   />
                 );
               })

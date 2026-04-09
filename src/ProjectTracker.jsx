@@ -13,7 +13,7 @@ function getCurrentWeekNumber() { return getCurrentWeek().week; }
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function ProjectTracker() {
+export default function ProjectTracker({ onRowInfoChange }) {
   const [rows, setRows]           = useState(null);
   const [dataReady, setDataReady] = useState(false);
   const [serverOk, setServerOk]   = useState(false);
@@ -407,6 +407,17 @@ export default function ProjectTracker() {
   const selRow  = visible[sel.r];
   const selType = selRow ? getType(selRow.row.depth) : 'Area';
 
+  // Notify parent (tab bar) of current row position and type
+  useEffect(() => {
+    if (!onRowInfoChange) return;
+    onRowInfoChange({
+      rowNum:    sel.r + 1,
+      total:     visible.length,
+      selType,
+      typeColor: TYPE_BADGE_COLOR[selType] ?? '#94a3b8',
+    });
+  }, [sel.r, visible, selType, onRowInfoChange]);
+
   if (!dataReady) {
     return (
       <div style={{
@@ -516,8 +527,6 @@ export default function ProjectTracker() {
         background: '#12151f', borderTop: '1px solid #1e2235',
         fontSize: 13, color: '#475569', flexShrink: 0,
       }}>
-        <span>Row <span style={{ color: '#94a3b8' }}>{sel.r + 1}</span> / {visible.length}</span>
-        <span>Type: <span style={{ color: TYPE_BADGE_COLOR[selType], fontWeight: 700 }}>{selType}</span></span>
         {visible.length < (rows?.length ?? 0) && (
           <span>Filtered: <span style={{ color: '#60a5fa' }}>{visible.length}</span> of {rows.length}</span>
         )}
