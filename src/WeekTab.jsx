@@ -100,26 +100,79 @@ function SubColumn({ dayIdx, subCol, blocks, pendingClick, actionMode, onSlotCli
       {blocks
         .filter(b => b.day === dayIdx && b.sub_col === subCol)
         .map(b => (
-          <BlockChip key={b.id} block={b} onBlockClick={onBlockClick} />
+          <BlockChip
+            key={b.id}
+            block={b}
+            onBlockClick={onBlockClick}
+            onPassThroughClick={(slot) => onSlotClick(dayIdx, subCol, slot)}
+          />
         ))
       }
     </div>
   );
 }
 
+// ─── Block label parser ───────────────────────────────────────────────────────
+// Linked blocks store their label as "mainTitle|||fullParentName".
+// Unlinked (or legacy) blocks return parentName: null.
+
+function parseBlockLabel(block) {
+  if (block.linked_id && typeof block.label === 'string') {
+    const sep = block.label.indexOf('|||');
+    if (sep !== -1) {
+      return { mainTitle: block.label.slice(0, sep), parentName: block.label.slice(sep + 3) };
+    }
+  }
+  return { mainTitle: block.label || '', parentName: null };
+}
+
 // ─── Sub-component: BlockChip ────────────────────────────────────────────────
 
-function BlockChip({ block, onBlockClick }) {
+function BlockChip({ block, onBlockClick, onPassThroughClick }) {
   const top      = block.start_slot * SLOT_H;
   const height   = Math.max((block.end_slot - block.start_slot) * SLOT_H - 2, 4);
   const bg       = catBg(block.category);
   const fg       = catText(block.category);
-  const fontSize = (block.end_slot - block.start_slot) === 1 ? 6 : 10;
+  const isSingle = (block.end_slot - block.start_slot) === 1;
+  const fontSize = isSingle ? 12 : 10;
+  const mono     = "'DM Mono','Fira Code',monospace";
+
+  const { mainTitle, parentName } = parseBlockLabel(block);
+  const tooltip = parentName ? `${mainTitle} [${parentName}]` : (block.label || '');
+
+  const lineStyle = {
+    fontSize, color: fg, fontFamily: mono,
+    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+    display: 'block', lineHeight: 1.3,
+  };
+
+  let content;
+  if (parentName && !isSingle) {
+    // Two-line display for taller blocks
+    content = (
+      <div style={{ overflow: 'hidden' }}>
+        <span style={lineStyle}>{mainTitle || <em style={{ opacity: 0.5 }}>unlabelled</em>}</span>
+        <span style={{ ...lineStyle, opacity: 0.8 }}>[{parentName}]</span>
+      </div>
+    );
+  } else if (parentName) {
+    // Single line: "Title [Parent]"
+    content = (
+      <span style={lineStyle}>
+        {mainTitle || <em style={{ opacity: 0.5 }}>unlabelled</em>} [{parentName}]
+      </span>
+    );
+  } else {
+    content = (
+      <span style={lineStyle}>
+        {block.label || <em style={{ opacity: 0.5 }}>unlabelled</em>}
+      </span>
+    );
+  }
 
   return (
     <div
-      onClick={e => { e.stopPropagation(); onBlockClick(e, block); }}
-      title={block.label}
+      title={tooltip}
       style={{
         position: 'absolute',
         top, left: 2, right: 2, height,
@@ -128,19 +181,26 @@ function BlockChip({ block, onBlockClick }) {
         borderRadius: 3,
         padding: '1px 4px',
         overflow: 'hidden',
-        cursor: 'pointer',
         zIndex: 5,
         boxSizing: 'border-box',
       }}
     >
-      <span style={{
-        fontSize, color: fg,
-        fontFamily: "'DM Mono','Fira Code',monospace",
-        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        display: 'block', lineHeight: 1.4,
-      }}>
-        {block.label || <em style={{ opacity: 0.5 }}>unlabelled</em>}
-      </span>
+      {content}
+      {/* Left half — opens context menu */}
+      <div
+        onClick={e => { e.stopPropagation(); onBlockClick(e, block); }}
+        style={{ position: 'absolute', inset: '0 50% 0 0', cursor: 'pointer' }}
+      />
+      {/* Right half — passes click through to the underlying time slot */}
+      <div
+        onClick={e => {
+          e.stopPropagation();
+          const rect = e.currentTarget.getBoundingClientRect();
+          const slotOffset = Math.floor((e.clientY - rect.top) / SLOT_H);
+          onPassThroughClick(Math.min(block.start_slot + slotOffset, block.end_slot - 1));
+        }}
+        style={{ position: 'absolute', inset: '0 0 0 50%', cursor: 'crosshair' }}
+      />
     </div>
   );
 }
