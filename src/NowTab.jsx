@@ -18,10 +18,11 @@ async function apiSaveRows(rows)    { await fetch('/api/rows', { method:'PUT', h
 
 // ─── Layout constants ────────────────────────────────────────────────────────
 
-const NOW_GROUPS = ['Today', 'Tomorrow'];
-const NOW_SUBS   = ['Base', 'Import', 'Revised'];
+const NOW_GROUPS    = ['Today', 'Tomorrow'];
+const NOW_SUBS      = ['Base', 'Import', 'Revised'];
+const NOW_SUB_COL_W = SUB_COL_W * 2;   // double width for Now tab columns
 
-const TOTAL_W = TIME_COL_W + NOW_GROUPS.length * NOW_SUBS.length * SUB_COL_W;
+const TOTAL_W = TIME_COL_W + NOW_GROUPS.length * NOW_SUBS.length * NOW_SUB_COL_W;
 
 const BG        = '#0f1117';
 const PANEL     = '#12151f';
@@ -57,7 +58,7 @@ function TimeColumn() {
       {Array.from({ length: SLOTS }, (_, s) => (
         <div key={s} style={{
           height: SLOT_H,
-          borderBottom: `1px solid ${isHourSlot(s) ? BORDER_H : BORDER_Q}`,
+          borderBottom: `1px solid ${isHourSlot(s + 1) ? BORDER_H : BORDER_Q}`,
           display: 'flex', alignItems: 'center',
           paddingRight: 6, justifyContent: 'flex-end',
         }}>
@@ -88,7 +89,7 @@ function SubColumn({ groupIdx, subColName, blocks, readOnly, pendingClick, actio
 
   return (
     <div style={{
-      width: SUB_COL_W, flexShrink: 0, position: 'relative',
+      width: NOW_SUB_COL_W, flexShrink: 0, position: 'relative',
       background: readOnly ? READONLY_OVERLAY : (isPending || isActionTarget) ? 'rgba(255,255,255,0.03)' : 'transparent',
       cursor: (isPending || isActionTarget) ? 'crosshair' : (readOnly ? 'default' : 'default'),
     }}>
@@ -118,10 +119,11 @@ function SubColumn({ groupIdx, subColName, blocks, readOnly, pendingClick, actio
 // ─── Sub-component: BlockChip ─────────────────────────────────────────────────
 
 function BlockChip({ block, readOnly, onBlockClick }) {
-  const top    = block.start_slot * SLOT_H;
-  const height = Math.max((block.end_slot - block.start_slot) * SLOT_H - 2, 4);
-  const bg     = catBg(block.category);
-  const fg     = catText(block.category);
+  const top      = block.start_slot * SLOT_H;
+  const height   = Math.max((block.end_slot - block.start_slot) * SLOT_H - 2, 4);
+  const bg       = catBg(block.category);
+  const fg       = catText(block.category);
+  const fontSize = (block.end_slot - block.start_slot) === 1 ? 6 : 10;
 
   return (
     <div
@@ -137,7 +139,7 @@ function BlockChip({ block, readOnly, onBlockClick }) {
       }}
     >
       <span style={{
-        fontSize: 10, color: fg,
+        fontSize, color: fg,
         fontFamily: "'DM Mono','Fira Code',monospace",
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         display: 'block', lineHeight: 1.4,
@@ -569,7 +571,7 @@ export default function NowTab() {
                   fontSize: 12, fontWeight: 700, color: '#e2e8f0',
                   fontFamily: "'DM Mono','Fira Code',monospace",
                   borderRight: `1px solid ${BORDER_H}`,
-                  width: SUB_COL_W * NOW_SUBS.length,
+                  width: NOW_SUB_COL_W * NOW_SUBS.length,
                   borderBottom: `1px solid ${BORDER_Q}`,
                 }}>
                   {grpName}
@@ -577,7 +579,7 @@ export default function NowTab() {
                 <div style={{ display: 'flex' }}>
                   {NOW_SUBS.map(sc => (
                     <div key={sc} style={{
-                      width: SUB_COL_W, height: HEADER_H / 2,
+                      width: NOW_SUB_COL_W, height: HEADER_H / 2,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 11,
                       color: sc === 'Revised' ? '#e2e8f0' : HDR_TEXT,

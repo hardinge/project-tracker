@@ -42,7 +42,7 @@ function TimeColumn() {
       {Array.from({ length: SLOTS }, (_, s) => (
         <div key={s} style={{
           height: SLOT_H,
-          borderBottom: `1px solid ${isHourSlot(s) ? BORDER_H : BORDER_Q}`,
+          borderBottom: `1px solid ${isHourSlot(s + 1) ? BORDER_H : BORDER_Q}`,
           display: 'flex', alignItems: 'center',
           paddingRight: 6,
           justifyContent: 'flex-end',
@@ -110,10 +110,11 @@ function SubColumn({ dayIdx, subCol, blocks, pendingClick, actionMode, onSlotCli
 // ─── Sub-component: BlockChip ────────────────────────────────────────────────
 
 function BlockChip({ block, onBlockClick }) {
-  const top    = block.start_slot * SLOT_H;
-  const height = Math.max((block.end_slot - block.start_slot) * SLOT_H - 2, 4);
-  const bg     = catBg(block.category);
-  const fg     = catText(block.category);
+  const top      = block.start_slot * SLOT_H;
+  const height   = Math.max((block.end_slot - block.start_slot) * SLOT_H - 2, 4);
+  const bg       = catBg(block.category);
+  const fg       = catText(block.category);
+  const fontSize = (block.end_slot - block.start_slot) === 1 ? 6 : 10;
 
   return (
     <div
@@ -133,7 +134,7 @@ function BlockChip({ block, onBlockClick }) {
       }}
     >
       <span style={{
-        fontSize: 10, color: fg,
+        fontSize, color: fg,
         fontFamily: "'DM Mono','Fira Code',monospace",
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         display: 'block', lineHeight: 1.4,

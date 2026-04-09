@@ -35,23 +35,24 @@ export default function MainTable({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
 
-      {/* ── Column headers ── */}
-      <div style={{ display: 'flex', background: '#1a1d2e', borderBottom: '2px solid #2d3149', flexShrink: 0 }}>
-        {COL_WIDTHS.map((w, i) => (
-          <div key={i} style={{
-            width: w, minWidth: w, padding: '6px 10px',
-            fontSize: 12, fontWeight: 700, color: '#64748b',
-            textTransform: 'uppercase', letterSpacing: '0.8px',
-            borderRight: '1px solid #2d3149', boxSizing: 'border-box', overflow: 'hidden',
-          }}>
-            {COL_HEADERS[i]}
-          </div>
-        ))}
-      </div>
-
-      {/* ── Rows ── */}
+      {/* ── Scrollable area (header + rows scroll together horizontally; header is sticky vertically) ── */}
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
         <div style={{ minWidth: totalWidth }}>
+
+          {/* ── Column headers (sticky top so always visible, scrolls horizontally with body) ── */}
+          <div style={{ position: 'sticky', top: 0, zIndex: 10, display: 'flex', background: '#1a1d2e', borderBottom: '2px solid #2d3149' }}>
+            {COL_WIDTHS.map((w, i) => (
+              <div key={i} style={{
+                width: w, minWidth: w, padding: '6px 10px',
+                fontSize: 12, fontWeight: 700, color: '#64748b',
+                textTransform: 'uppercase', letterSpacing: '0.8px',
+                borderRight: '1px solid #2d3149', boxSizing: 'border-box', overflow: 'hidden',
+              }}>
+                {COL_HEADERS[i]}
+              </div>
+            ))}
+          </div>
+
           {visible.map(({ row, globalIdx }, rowIdx) => {
             const type      = getType(row.depth);
             const defs      = COL_DEFS[type];
