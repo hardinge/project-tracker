@@ -12,12 +12,12 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { id, tab, day, sub_col, start_slot, end_slot, label, category, linked_id } = req.body;
+  const { id, tab, day, sub_col, start_slot, end_slot, label, category, linked_id, created_at } = req.body;
   try {
     db.prepare(`
-      INSERT INTO blocks (id, tab, day, sub_col, start_slot, end_slot, label, category, linked_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, tab, day, sub_col, start_slot, end_slot, label ?? '', category ?? null, linked_id ?? null);
+      INSERT INTO blocks (id, tab, day, sub_col, start_slot, end_slot, label, category, linked_id, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, tab, day, sub_col, start_slot, end_slot, label ?? '', category ?? null, linked_id ?? null, created_at ?? Date.now());
     res.json({ ok: true });
   } catch (err) {
     console.error('[blocks] create error:', err);

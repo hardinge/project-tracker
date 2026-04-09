@@ -3,7 +3,7 @@ import {
   SLOTS, SLOT_H, TIME_COL_W, SUB_COL_W, HEADER_H,
   CATEGORIES,
   slotLabel, isHourSlot, catBg, catText, genId, linkedLabel,
-  jsDayToWeekDay,
+  jsDayToWeekDay, computeOverlapLayout, wouldExceedOverlapLimit,
 } from './calendarUtils.js';
 
 // ─── API helpers ──────────────────────────────────────────────────────────────
@@ -109,10 +109,12 @@ function SubColumn({ groupIdx, subColName, blocks, readOnly, pendingClick, actio
       <div style={{ height: 1, background: BORDER_H }} />
 
       {/* Blocks */}
-      {blocks.map(b => (
+      {computeOverlapLayout(blocks).map(b => (
         <BlockChip
           key={b.id}
           block={b}
+          lane={b.lane}
+          laneCount={b.laneCount}
           readOnly={readOnly}
           onBlockClick={onBlockClick}
           onPassThroughClick={readOnly ? null : (slot) => onSlotClick(groupIdx, subColName, slot)}
@@ -143,9 +145,11 @@ function parseBlockLabel(block) {
 
 // ─── Sub-component: BlockChip ─────────────────────────────────────────────────
 
-function BlockChip({ block, readOnly, onBlockClick, onPassThroughClick }) {
+function BlockChip({ block, readOnly, onBlockClick, onPassThroughClick, lane = 0, laneCount = 1 }) {
   const top      = block.start_slot * SLOT_H;
   const height   = Math.max((block.end_slot - block.start_slot) * SLOT_H - 2, 4);
+  const pctW     = 100 / laneCount;
+  const pctL     = lane * pctW;
   const bg       = catBg(block.category);
   const fg       = catText(block.category);
   const isSingle = (block.end_slot - block.start_slot) === 1;
@@ -189,7 +193,11 @@ function BlockChip({ block, readOnly, onBlockClick, onPassThroughClick }) {
     <div
       title={tooltip}
       style={{
-        position: 'absolute', top, left: 2, right: 2, height,
+        position: 'absolute',
+        top,
+        left: `calc(${pctL}% + 2px)`,
+        width: `calc(${pctW}% - 4px)`,
+        height,
         background: bg, borderLeft: `3px solid ${fg}`,
         borderRadius: 3, padding: '1px 4px',
         overflow: 'hidden', zIndex: 5, boxSizing: 'border-box',
@@ -197,12 +205,12 @@ function BlockChip({ block, readOnly, onBlockClick, onPassThroughClick }) {
       }}
     >
       {content}
-      {/* Left half — opens context menu */}
+      {/* Left half of this block's own width — opens context menu */}
       <div
         onClick={e => { e.stopPropagation(); if (!readOnly) onBlockClick(e, block); }}
         style={{ position: 'absolute', inset: '0 50% 0 0', cursor: readOnly ? 'default' : 'pointer' }}
       />
-      {/* Right half — passes click through to the underlying time slot */}
+      {/* Right half of this block's own width — passes click through to time slot */}
       <div
         onClick={e => {
           e.stopPropagation();
@@ -454,13 +462,14 @@ const crumbStyle = {
 // ─── Main NowTab component ────────────────────────────────────────────────────
 
 export default function NowTab() {
-  const [nowBlocks,  setNowBlocks]  = useState([]);   // tab='now', sub_col='revised'
-  const [weekBlocks, setWeekBlocks] = useState([]);   // tab='week' (for Base columns)
-  const [pendingClick, setPending]  = useState(null);
-  const [actionMode,  setAction]    = useState(null);
-  const [contextMenu, setMenu]      = useState(null);
-  const [editModal,   setEdit]      = useState(null);
-  const [drilldown,   setDrill]     = useState(null);
+  const [nowBlocks,     setNowBlocks]     = useState([]);   // tab='now', sub_col='revised'
+  const [weekBlocks,    setWeekBlocks]    = useState([]);   // tab='week' (for Base columns)
+  const [pendingClick,  setPending]       = useState(null);
+  const [actionMode,    setAction]        = useState(null);
+  const [contextMenu,   setMenu]          = useState(null);
+  const [editModal,     setEdit]          = useState(null);
+  const [drilldown,     setDrill]         = useState(null);
+  const [overlapBlocked, setOverlapBlocked] = useState(false);
 
   // Determine which week-day each group maps to
   const todayJsDay    = new Date().getDay();
@@ -519,8 +528,16 @@ export default function NowTab() {
     if (pendingClick && pendingClick.group === groupIdx && pendingClick.subCol === subColName) {
       const start_slot = Math.min(pendingClick.slot, slot);
       const end_slot   = Math.max(pendingClick.slot, slot) + 1;
+      const colBlocks  = nowBlocks.filter(b => b.day === groupIdx && b.sub_col === 'revised');
+      if (wouldExceedOverlapLimit({ start_slot, end_slot }, colBlocks)) {
+        setPending(null);
+        setOverlapBlocked(true);
+        setTimeout(() => setOverlapBlocked(false), 3000);
+        return;
+      }
       const id         = genId();
-      const nb = { id, tab: 'now', day: groupIdx, sub_col: 'revised', start_slot, end_slot, label: '', category: null, linked_id: null };
+      const created_at = Date.now();
+      const nb = { id, tab: 'now', day: groupIdx, sub_col: 'revised', start_slot, end_slot, label: '', category: null, linked_id: null, created_at };
       await apiCreate(nb);
       setNowBlocks(prev => [...prev, nb]);
       setPending(null);
@@ -613,6 +630,15 @@ export default function NowTab() {
           borderBottom: `1px solid ${BORDER_H}`,
         }}>
           Click a second cell in the same Revised sub-column to create a block. Press Esc to cancel.
+        </div>
+      )}
+      {overlapBlocked && (
+        <div style={{
+          background: '#7f1d1d', color: '#fca5a5', fontSize: 12, padding: '6px 16px',
+          fontFamily: "'DM Mono','Fira Code',monospace", flexShrink: 0,
+          borderBottom: `1px solid ${BORDER_H}`,
+        }}>
+          Cannot create block — three blocks already overlap at that time. Maximum three overlapping blocks per sub-column.
         </div>
       )}
 
