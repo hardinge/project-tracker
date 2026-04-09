@@ -83,13 +83,13 @@ export function genId() { return Math.random().toString(36).slice(2, 8); }
 
 /**
  * Build a block label from a linked database item.
- * Format: "[first8ofParentName] itemName"
+ * Format: "itemName|||fullParentName"
+ * BlockChip components parse this to render a two-line (or single-line) display.
  */
 export function linkedLabel(item, allRows) {
   const parent = allRows.find(r => r.id === item.parent_id);
   const parentTitle = parent ? (parent.values[0] ?? '') : '';
-  const prefix = parentTitle.slice(0, 8);
-  return `[${prefix}] ${item.values[0] ?? ''}`;
+  return `${item.values[0] ?? ''}|||${parentTitle}`;
 }
 
 // ─── JS day-of-week → Week-tab day index ──────────────────────────────────
