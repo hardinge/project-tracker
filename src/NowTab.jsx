@@ -33,6 +33,10 @@ const HDR_BG       = '#0a0c14';
 const HDR_TEXT     = '#94a3b8';
 const TIME_TEXT    = '#7a90b0';  // brighter hour labels
 const READONLY_OVERLAY = 'rgba(0,0,0,0.15)';
+const WEEKEND_BG = '#141c2e';  // lighter bg for weekend + off-hours slots
+
+// Slot 0 = 5am. 7am = slot 8, 5pm = slot 48.
+const isOffHours = (s) => s < 8 || s >= 48;
 
 // ─── Midnight rotation helper ─────────────────────────────────────────────────
 
@@ -54,17 +58,17 @@ function TimeColumn() {
     <div style={{
       width: TIME_COL_W, flexShrink: 0,
       position: 'sticky', left: 0, zIndex: 10,
-      background: PANEL, borderRight: `1px solid ${BORDER_H}`,
+      background: PANEL, borderRight: `1px solid ${BORDER_GROUP}`,
     }}>
       {Array.from({ length: SLOTS }, (_, s) => (
         <div key={s} style={{
           height: SLOT_H,
           borderBottom: `1px solid ${isHourSlot(s + 1) ? BORDER_H : BORDER_Q}`,
           display: 'flex', alignItems: 'center',
-          paddingRight: 6, justifyContent: 'flex-end',
+          paddingRight: 8, justifyContent: 'flex-end',
         }}>
           {isHourSlot(s) && (
-            <span style={{ fontSize: 10, color: TIME_TEXT, fontFamily: "'DM Mono','Fira Code',monospace", lineHeight: 1 }}>
+            <span style={{ fontSize: 13, color: TIME_TEXT, fontFamily: "'DM Mono','Fira Code',monospace", lineHeight: 1 }}>
               {slotLabel(s)}
             </span>
           )}
@@ -72,8 +76,8 @@ function TimeColumn() {
       ))}
       <div style={{ height: 1, position: 'relative' }}>
         <span style={{
-          position: 'absolute', right: 6, top: -8,
-          fontSize: 10, color: TIME_TEXT, fontFamily: "'DM Mono','Fira Code',monospace",
+          position: 'absolute', right: 8, top: -8,
+          fontSize: 13, color: TIME_TEXT, fontFamily: "'DM Mono','Fira Code',monospace",
         }}>10pm</span>
       </div>
     </div>
@@ -82,7 +86,7 @@ function TimeColumn() {
 
 // ─── Sub-component: SubColumn ─────────────────────────────────────────────────
 
-function SubColumn({ groupIdx, subColName, blocks, readOnly, pendingClick, actionMode, onSlotClick, onBlockClick, isLastInGroup }) {
+function SubColumn({ groupIdx, subColName, blocks, readOnly, pendingClick, actionMode, onSlotClick, onBlockClick, isLastInGroup, isWeekend }) {
   const isPending      = !readOnly && pendingClick
     && pendingClick.group === groupIdx && pendingClick.subCol === subColName;
   const isActionTarget = !readOnly && actionMode
@@ -103,7 +107,9 @@ function SubColumn({ groupIdx, subColName, blocks, readOnly, pendingClick, actio
             borderBottom: `1px solid ${isHourSlot(s + 1) ? BORDER_H : BORDER_Q}`,
             borderRight: `1px solid ${isLastInGroup ? BORDER_GROUP : BORDER_Q}`,
             boxSizing: 'border-box',
-            background: isPending && pendingClick.slot === s ? 'rgba(99,102,241,0.25)' : 'transparent',
+            background: isPending && pendingClick.slot === s
+              ? 'rgba(99,102,241,0.25)'
+              : (isWeekend || isOffHours(s)) ? WEEKEND_BG : 'transparent',
           }}
         />
       ))}
@@ -154,7 +160,7 @@ function BlockChip({ block, readOnly, onBlockClick, onPassThroughClick, lane = 0
   const bg       = catBg(block.category);
   const fg       = catText(block.category);
   const isSingle = (block.end_slot - block.start_slot) === 1;
-  const fontSize = isSingle ? 12 : 10;
+  const fontSize = isSingle ? 15 : 13;
   const mono     = "'DM Mono','Fira Code',monospace";
 
   const { mainTitle, parentName } = parseBlockLabel(block);
@@ -650,7 +656,7 @@ export default function NowTab() {
           {/* ── Header ───────────────────────────────────────────────────── */}
           <div style={{
             display: 'flex', position: 'sticky', top: 0, zIndex: 20,
-            background: HDR_BG, borderBottom: `1px solid ${BORDER_H}`, flexShrink: 0,
+            background: HDR_BG, borderBottom: `1px solid ${BORDER_GROUP}`, flexShrink: 0,
           }}>
             {/* Corner */}
             <div style={{
@@ -663,7 +669,7 @@ export default function NowTab() {
               <div key={grpName} style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{
                   height: HEADER_H / 2, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, fontWeight: 700, color: '#e2e8f0',
+                  fontSize: 15, fontWeight: 700, color: '#e2e8f0',
                   fontFamily: "'DM Mono','Fira Code',monospace",
                   borderRight: `1px solid ${BORDER_GROUP}`,
                   width: NOW_SUB_COL_W * NOW_SUBS.length,
@@ -676,7 +682,7 @@ export default function NowTab() {
                     <div key={sc} style={{
                       width: NOW_SUB_COL_W, height: HEADER_H / 2,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 11,
+                      fontSize: 14,
                       color: sc === 'Revised' ? '#e2e8f0' : HDR_TEXT,
                       fontFamily: "'DM Mono','Fira Code',monospace",
                       borderRight: `1px solid ${si === NOW_SUBS.length - 1 ? BORDER_GROUP : BORDER_Q}`,
@@ -708,6 +714,7 @@ export default function NowTab() {
                     onSlotClick={handleSlotClick}
                     onBlockClick={(e, b) => handleBlockClick(e, b, gi)}
                     isLastInGroup={si === NOW_SUBS.length - 1}
+                    isWeekend={weekDayForGroup[gi] <= 1}
                   />
                 );
               })

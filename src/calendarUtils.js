@@ -7,16 +7,16 @@ export const SLOTS = 68;
 export const START_MINUTES = 5 * 60;
 
 /** Pixel height of one 15-min slot row */
-export const SLOT_H = 11;
+export const SLOT_H = 14;
 
 /** Pixel width of the fixed time-label column */
-export const TIME_COL_W = 35;
+export const TIME_COL_W = 44;
 
 /** Pixel width of each sub-column (HS / BM / Base / Revised …) */
-export const SUB_COL_W = 90;
+export const SUB_COL_W = 112;
 
 /** Pixel height of the two-row day/sub-col header area */
-export const HEADER_H = 44;
+export const HEADER_H = 55;
 
 // ─── Week tab structure ────────────────────────────────────────────────────
 

@@ -40,18 +40,18 @@ function TimeColumn() {
       width: TIME_COL_W, flexShrink: 0,
       position: 'sticky', left: 0, zIndex: 10,
       background: PANEL,
-      borderRight: `1px solid ${BORDER_H}`,
+      borderRight: `1px solid ${BORDER_GROUP}`,
     }}>
       {Array.from({ length: SLOTS }, (_, s) => (
         <div key={s} style={{
           height: SLOT_H,
           borderBottom: `1px solid ${isHourSlot(s + 1) ? BORDER_H : BORDER_Q}`,
           display: 'flex', alignItems: 'center',
-          paddingRight: 6,
+          paddingRight: 8,
           justifyContent: 'flex-end',
         }}>
           {isHourSlot(s) && (
-            <span style={{ fontSize: 10, color: TIME_TEXT, fontFamily: "'DM Mono','Fira Code',monospace", lineHeight: 1 }}>
+            <span style={{ fontSize: 13, color: TIME_TEXT, fontFamily: "'DM Mono','Fira Code',monospace", lineHeight: 1 }}>
               {slotLabel(s)}
             </span>
           )}
@@ -60,8 +60,8 @@ function TimeColumn() {
       {/* 10pm end label */}
       <div style={{ height: 1, position: 'relative' }}>
         <span style={{
-          position: 'absolute', right: 6, top: -8,
-          fontSize: 10, color: TIME_TEXT, fontFamily: "'DM Mono','Fira Code',monospace",
+          position: 'absolute', right: 8, top: -8,
+          fontSize: 13, color: TIME_TEXT, fontFamily: "'DM Mono','Fira Code',monospace",
         }}>10pm</span>
       </div>
     </div>
@@ -151,7 +151,7 @@ function BlockChip({ block, onBlockClick, onPassThroughClick, lane = 0, laneCoun
   const bg       = catBg(block.category);
   const fg       = catText(block.category);
   const isSingle = (block.end_slot - block.start_slot) === 1;
-  const fontSize = isSingle ? 12 : 10;
+  const fontSize = isSingle ? 15 : 13;
   const mono     = "'DM Mono','Fira Code',monospace";
 
   const { mainTitle, parentName } = parseBlockLabel(block);
@@ -666,7 +666,7 @@ export default function WeekTab() {
           {/* ── Header row ───────────────────────────────────────────────── */}
           <div style={{
             display: 'flex', position: 'sticky', top: 0, zIndex: 20,
-            background: HDR_BG, borderBottom: `1px solid ${BORDER_H}`,
+            background: HDR_BG, borderBottom: `1px solid ${BORDER_GROUP}`,
             flexShrink: 0,
           }}>
             {/* Top-left corner */}
@@ -681,7 +681,7 @@ export default function WeekTab() {
                 {/* Day name */}
                 <div style={{
                   height: HEADER_H / 2, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, fontWeight: 700, color: '#e2e8f0',
+                  fontSize: 15, fontWeight: 700, color: '#e2e8f0',
                   fontFamily: "'DM Mono','Fira Code',monospace",
                   borderRight: `1px solid ${BORDER_GROUP}`,
                   width: SUB_COL_W * WEEK_SUB_COLS.length,
@@ -695,7 +695,7 @@ export default function WeekTab() {
                     <div key={sc} style={{
                       width: SUB_COL_W, height: HEADER_H / 2,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 11, color: HDR_TEXT,
+                      fontSize: 14, color: HDR_TEXT,
                       fontFamily: "'DM Mono','Fira Code',monospace",
                       borderRight: `1px solid ${si === WEEK_SUB_COLS.length - 1 ? BORDER_GROUP : BORDER_Q}`,
                     }}>
